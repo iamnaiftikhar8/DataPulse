@@ -13,7 +13,7 @@ import {
 
 type Status = 'idle' | 'uploading' | 'analyzing' | 'done';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://data-pulse-api.vercel.app';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
 
 const palette = {
   bg: '#0C0D10',
