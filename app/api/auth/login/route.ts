@@ -1,6 +1,6 @@
 // app/api/auth/login/route.ts
 import { NextResponse } from "next/server";
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://data-pulse-api.vercel.app";
 export const runtime = "nodejs"; export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
