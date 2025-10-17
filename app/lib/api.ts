@@ -16,7 +16,7 @@ export function getAuthHeaders() {
 }
 
 export async function apiFetch<T = any>(path: string, init: RequestInit = {}) {
-  const base = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000"; // FastAPI
+  const base = process.env.NEXT_PUBLIC_API_BASE || "https://data-pulse-api.vercel.app"; // FastAPI
   const res = await fetch(`${base}${path}`, {
     ...init,
     headers: {
