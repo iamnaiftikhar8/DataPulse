@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Grid3X3, Mail, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://data-pulse-api.vercel.app";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
@@ -24,7 +24,7 @@ export default function SignupPage() {
   if (password !== confirm) return setError("Passwords do not match.");
 
   try {
-    const res = await fetch("https://data-pulse-api.vercel.app/api/auth/signup", {
+    const res = await fetch("http://127.0.0.1:8000/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include", // IMPORTANT: sets dp_session_id cookie after signup
