@@ -1,4 +1,4 @@
-// src/lib/api.ts
+// app/lib/api.ts
 export function saveAuthToStorage(userId: string, sessionId: string) {
   if (typeof window === "undefined") return;
   localStorage.setItem("dp_user_id", userId);

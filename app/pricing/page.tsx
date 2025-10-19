@@ -1,4 +1,4 @@
-import PricingRoute from '@/components/routes/PricingRoute';
+import PricingPage from '@/components/pages/PricingPage';
 export default function Page() {
-  return <PricingRoute />;
+  return <PricingPage />;
 }
