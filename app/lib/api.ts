@@ -1,5 +1,5 @@
 // app/lib/api.ts
-export function saveAuthToStorage(userId: string, sessionId: string) {
+/*export function saveAuthToStorage(userId: string, sessionId: string) {
   if (typeof window === "undefined") return;
   localStorage.setItem("dp_user_id", userId);
   localStorage.setItem("dp_session_id", sessionId);
@@ -32,3 +32,4 @@ export async function apiFetch<T = any>(path: string, init: RequestInit = {}) {
   }
   return res.json() as Promise<T>;
 }
+*/
