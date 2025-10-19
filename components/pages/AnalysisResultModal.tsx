@@ -260,7 +260,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-[min(1100px,92vw)] max-h-[92vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0C0D10] p-6 shadow-xl">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="pt-4 mb-6 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-extrabold text-white">Analysis Results</h2>
             <p className="text-xs text-gray-400">Profiling • KPIs • Charts • AI Insights</p>
