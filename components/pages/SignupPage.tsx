@@ -24,7 +24,7 @@ export default function SignupPage() {
   if (password !== confirm) return setError("Passwords do not match.");
 
   try {
-    const res = await fetch("http://127.0.0.1:8000/api/auth/signup", {
+    const res = await fetch("https://test-six-fawn-47.vercel.app/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include", // IMPORTANT: sets dp_session_id cookie after signup
