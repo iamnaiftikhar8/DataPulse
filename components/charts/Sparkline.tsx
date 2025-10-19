@@ -1,3 +1,4 @@
+//components/charts/sparkline.tsx
 'use client';
 
 import { ResponsiveContainer, AreaChart, Area, Tooltip } from 'recharts';
