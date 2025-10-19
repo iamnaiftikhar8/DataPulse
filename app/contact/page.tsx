@@ -1,5 +1,5 @@
 //app/contact/page.tsx
-import ContactRoute from '@/components/routes/ContactRoute';
+import ContactPage from '@/components/pages/ContactPage';
 export default function Page() {
-  return <ContactRoute />;
+  return <ContactPage />;
 }

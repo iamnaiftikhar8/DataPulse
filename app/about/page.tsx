@@ -1,5 +1,5 @@
 
-import AboutRoute from '@/components/routes/AboutRoute';
+import AboutPage from '@/components/pages/AboutPage';
 export default function Page() {
-  return <AboutRoute />;
+  return <AboutPage />;
 }

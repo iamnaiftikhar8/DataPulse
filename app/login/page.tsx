@@ -1,4 +1,4 @@
-import LoginRoute from '@/components/routes/LoginRoute';
+import LoginPage from '@/components/pages/LoginPage';
 export default function Page() {
-  return <LoginRoute />;
+  return <LoginPage />;
 }

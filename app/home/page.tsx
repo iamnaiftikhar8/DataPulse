@@ -1,5 +1,5 @@
 //app/home/page.tsx
-import HomeRoute from '@/components/routes/HomeRoute';
+import HomePage from '@/components/pages/HomePage';
 export default function Page() {
-  return <HomeRoute />;
+  return <HomePage />;
 }

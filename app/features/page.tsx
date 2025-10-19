@@ -1,5 +1,5 @@
 //app/features/page.tsx
-import FeaturesRoute from '@/components/routes/FeaturesRoute';
+import FeaturesPage from '@/components/pages/FeaturesPage';
 export default function Page() {
-  return <FeaturesRoute />;
+  return <FeaturesPage />;
 }
