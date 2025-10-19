@@ -1,11 +1,11 @@
-// components/pages/AnalyzePage.tsx - MERGED VERSION
+//components/pages/AnalyzePage
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
 import { UploadCloud, FileSpreadsheet, Download, RotateCcw } from 'lucide-react';
 import { toPng } from 'dom-to-image-more';
 import jsPDF from 'jspdf';
-import type { AnalysisResult, DetailedSummary } from '@/src/types';
+import type { AnalysisResult } from '@/src/types';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend,
   CartesianGrid, ReferenceLine, Brush, BarChart, Bar, PieChart, Pie, Cell, Label
@@ -174,15 +174,10 @@ export default function AnalyzePage() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [progress, setProgress] = useState(0);
-  
-  // Added from short version
-  const [goal] = useState('improve profitability');
-  const [audience] = useState<'executive' | 'analyst' | 'product' | 'sales'>('executive');
   const [result, setResult] = useState<AnalysisResult | null>(null);
 
   const reportRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const inFlight = useRef(false); // Added from short version
 
   // OPTIONAL: ensure a server session exists if the cookie is missing
   useEffect(() => {
@@ -202,136 +197,42 @@ export default function AnalyzePage() {
     setProgress(0);
     setStatus('idle');
     setDragOver(false);
-    inFlight.current = false;
     if (inputRef.current) inputRef.current.value = '';
   }
 
-  function onBrowseClick() {
-    inputRef.current?.click();
-  }
-
-  // Stable idempotency key from file bytes - from short version
-  async function fileSha256Hex(f: File) {
-    const buf = await f.arrayBuffer();
-    const hash = await crypto.subtle.digest('SHA-256', buf);
-    return [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  // MERGED: Enhanced backend function with paywall/auth logic
   async function sendToBackend(selected: File) {
-    if (inFlight.current) return; // re-entrancy guard from short version
-    inFlight.current = true;
-
     setStatus('analyzing');
-    setProgress(10);
+    setProgress(8);
 
-    const tick = setInterval(() => setProgress(p => (p < 92 ? p + 5 : p)), 200);
+    const form = new FormData();
+    form.append('file', selected);
+
+    const tick = setInterval(() => setProgress(p => (p < 92 ? p + 4 : p)), 250);
 
     try {
-      // Use Next.js API route instead of direct backend call
-      const formData = new FormData();
-      formData.append('file', selected);
-
-      const idem = await fileSha256Hex(selected);
-      const r1 = await fetch('/api/analyze', {
+      const r = await fetch(`${API_BASE}/api/analyze`, {
         method: 'POST',
-        body: formData,
-        headers: {
-          'X-Idempotency-Key': idem,
-        },
+        body: form,
+        credentials: 'include', // IMPORTANT: send dp_session_id cookie
       });
-
-      // Paywall and auth logic from short version
-      if (r1.status === 401) {
-        clearInterval(tick);
-        inFlight.current = false;
-        setStatus('idle');
-        setProgress(0);
-        alert('Please log in first to generate a report.');
-        return;
-      }
-
-      if (r1.status === 402) {
-        // paywall branch
-        let pay = null;
-        try { pay = await r1.json(); } catch {}
-        const url = pay?.checkout_url;
-        clearInterval(tick);
-        inFlight.current = false;
-        setStatus('idle');
-        setProgress(0);
-        if (url) {
-          window.location.href = url;
-        } else {
-          alert('You\'ve used your free report. Please upgrade to continue.');
-        }
-        return;
-      }
-
-      if (!r1.ok) {
-        const t = await r1.text().catch(() => '');
-        throw new Error(t || `Analyze failed with ${r1.status}`);
-      }
-
-      const quick = (await r1.json()) as AnalysisResult & { upload_id?: string; content_hash?: string };
-
-      // AI summary logic from short version
-      const uploadHandle = quick.upload_id ?? quick.content_hash;
-      let detailedNormalized: DetailedSummary | null = null;
-      
-      if (uploadHandle) {
-        const r2 = await fetch('/api/ai-summary', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            upload_id: uploadHandle,
-            business_goal: goal,
-            audience,
-          }),
-        });
-
-        if (r2.ok) {
-          const data = await r2.json();
-          if (data?.executive_overview || data?.key_trends || data?.action_items_quick_wins) {
-            detailedNormalized = {
-              executive_overview: data.executive_overview ?? '',
-              key_trends: Array.isArray(data.key_trends) ? data.key_trends : [],
-              action_items_quick_wins: Array.isArray(data.action_items_quick_wins) ? data.action_items_quick_wins : [],
-            };
-          } else if (typeof data?.summary === 'string') {
-            detailedNormalized = {
-              executive_overview: data.summary,
-              key_trends: [],
-              action_items_quick_wins: [],
-            };
-          }
-        }
-      }
-
-      const finalDetailed = detailedNormalized ?? quick.detailed_summary;
-
-      setResult({
-        ...quick,
-        detailed_summary: finalDetailed,
-      });
+      if (!r.ok) throw new Error(await r.text().catch(() => 'Analyze failed'));
+      const data = (await r.json()) as AnalysisResult;
+      setResult(data);
       setProgress(100);
       setStatus('done');
     } catch (e) {
       console.error(e);
-      alert('Analyze failed. See console/network for details.');
+      alert('Analyze failed');
       setStatus('idle');
       setProgress(0);
     } finally {
       clearInterval(tick);
-      inFlight.current = false;
     }
   }
 
   function onFilesSelected(filesList: FileList | null) {
     const f = filesList?.[0];
     if (!f) return;
-    if (inFlight.current) return; // guard repeated triggers from short version
-
     const ok =
       /\.xlsx?$/i.test(f.name) ||
       /\.csv$/i.test(f.name) ||
@@ -352,17 +253,15 @@ export default function AnalyzePage() {
     setDragOver(false);
     if (e.dataTransfer.files?.length) onFilesSelected(e.dataTransfer.files);
   }
-  
   function onDragOver(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(true);
   }
-  
   function onDragLeave() {
     setDragOver(false);
   }
 
-  // Export: text-only executive PDF (enhanced version)
+  // Export: text-only executive PDF (includes full KPIs)
   function exportPdfTextOnly() {
     if (!result) return;
 
@@ -413,7 +312,7 @@ export default function AnalyzePage() {
     }
 
     // AI Summary
-    const ai = result.detailed_summary ?? null;
+    const ai = (result as any).detailed_summary ?? null;
     H2('AI Executive Summary');
     const para = ai?.executive_overview ?? (result as any).insights?.summary ?? '';
     if (para) P(para);
@@ -476,7 +375,7 @@ export default function AnalyzePage() {
         <header className="mb-8 flex items-end justify-between">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-white">Analytics</h1>
-            <p className="mt-1 text-sm text-gray-400">Upload data → analyze → AI summary → export reports.</p>
+            <p className="mt-1 text-sm text-gray-400">Analyze your data with AI-powered insights and generate reports.</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -490,7 +389,7 @@ export default function AnalyzePage() {
                   : 'cursor-not-allowed bg-white/5 text-gray-500 ring-white/10',
               ].join(' ')}
             >
-              <Download className="h-4 w-4" /> Export PDF (Image)
+              <Download className="h-4 w-4" /> Export PDF
             </button>
             <button
               type="button"
@@ -510,7 +409,7 @@ export default function AnalyzePage() {
 
         {/* Upload & Progress */}
         <div className="grid gap-6 md:grid-cols-2">
-          <Section title="File Upload" subtitle="Upload an Excel/CSV and we'll analyze it.">
+          <Section title="File Upload" subtitle="Upload an Excel/CSV and we’ll analyze it.">
             <div
               onDrop={onDrop}
               onDragOver={onDragOver}
@@ -528,7 +427,7 @@ export default function AnalyzePage() {
               <p className="mt-1 text-sm text-gray-500">Or click to browse</p>
 
               <button
-                onClick={onBrowseClick}
+                onClick={() => inputRef.current?.click()}
                 className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white/[0.06] px-4 py-2 text-sm font-medium text-white ring-1 ring-inset ring-white/10 transition hover:bg-white/[0.1]"
               >
                 <FileSpreadsheet className="h-4 w-4" />
@@ -552,7 +451,7 @@ export default function AnalyzePage() {
             )}
           </Section>
 
-          <Section title="AI Analysis Progress" subtitle="We'll process your file and compute KPIs.">
+          <Section title="AI Analysis Progress" subtitle="We’ll process your file and compute KPIs.">
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-400">{progress}%</span>
               <span className="text-xs text-gray-400">
@@ -654,25 +553,25 @@ export default function AnalyzePage() {
             {result ? (
               <div className="rounded-2xl border border-white/10 bg-black/50 p-5">
                 <p className="text-sm leading-6 text-gray-200 whitespace-pre-wrap">
-                  {result.detailed_summary?.executive_overview ??
+                  {(result as any)?.detailed_summary?.executive_overview ??
                     (result as any)?.insights?.summary ??
                     'No AI summary was returned from the backend for this file.'}
                 </p>
 
-                {result.detailed_summary?.key_trends?.length ? (
+                {(result as any)?.detailed_summary?.key_trends?.length ? (
                   <div className="mt-4">
                     <h4 className="text-xs font-semibold text-gray-400">Key Trends</h4>
                     <ul className="mt-1 list-disc pl-5 text-sm text-gray-200">
-                      {result.detailed_summary.key_trends.map((t: string, i: number) => <li key={i}>{t}</li>)}
+                      {(result as any).detailed_summary.key_trends.map((t: string, i: number) => <li key={i}>{t}</li>)}
                     </ul>
                   </div>
                 ) : null}
 
-                {result.detailed_summary?.action_items_quick_wins?.length ? (
+                {(result as any)?.detailed_summary?.action_items_quick_wins?.length ? (
                   <div className="mt-4">
                     <h4 className="text-xs font-semibold text-gray-400">Quick Wins</h4>
                     <ul className="mt-1 list-disc pl-5 text-sm text-gray-200">
-                      {result.detailed_summary.action_items_quick_wins.map((t: string, i: number) => <li key={i}>{t}</li>)}
+                      {(result as any).detailed_summary.action_items_quick_wins.map((t: string, i: number) => <li key={i}>{t}</li>)}
                     </ul>
                   </div>
                 ) : null}
