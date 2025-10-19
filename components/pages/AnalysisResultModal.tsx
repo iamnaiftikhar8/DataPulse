@@ -1,4 +1,4 @@
-//components/pages/AnalysisResultModel
+// components/pages/AnalysisResultModal.tsx - FIXED VERSION
 'use client';
 
 import React from 'react';
@@ -260,7 +260,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-[min(1100px,92vw)] max-h-[92vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0C0D10] p-6 shadow-xl">
         {/* Header */}
-        <div className="mt-10 mb-4 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-extrabold text-white">Analysis Results</h2>
             <p className="text-xs text-gray-400">Profiling • KPIs • Charts • AI Insights</p>
@@ -268,13 +268,13 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
           <div className="flex gap-2">
             <button
               onClick={onExportPdf}
-              className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs ring-1 ring-white/15 hover:bg-white/20"
+              className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs font-medium text-white ring-1 ring-inset ring-white/15 transition hover:bg-white/20"
             >
               <Download className="h-4 w-4" /> Export PDF
             </button>
             <button
               onClick={onClose}
-              className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs ring-1 ring-white/15 hover:bg-white/20"
+              className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs font-medium text-white ring-1 ring-inset ring-white/15 transition hover:bg-white/20"
             >
               <X className="h-4 w-4" /> Close
             </button>
