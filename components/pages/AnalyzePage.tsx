@@ -23,6 +23,19 @@ export default function AnalyzePage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inFlight = useRef(false);
 
+  // Add this useEffect right after your existing useEffect
+useEffect(() => {
+  // Check if user is authenticated via Google OAuth
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  const isGoogleOAuth = localStorage.getItem('oauthProvider') === 'google';
+  
+  if (!isAuthenticated && !isGoogleOAuth) {
+    alert('Please log in first to generate a report.');
+    window.location.href = '/login';
+    return;
+  }
+}, []);
+
   // OPTIONAL: ensure a server session exists if the cookie is missing
   useEffect(() => {
     (async () => {

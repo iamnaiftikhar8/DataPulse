@@ -76,6 +76,7 @@ export default function LoginPage() {
 
   // ADD THIS: Google OAuth handler
   const handleGoogleLogin = async () => {
+    
     // Direct redirect to your backend Google endpoint
     window.location.href = "https://test-six-fawn-47.vercel.app/api/auth/google";
   };
