@@ -77,6 +77,7 @@ export default function AnalyzePage() {
       const r1 = await fetch('/api/analyze', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
         headers: {
           'X-Idempotency-Key': idem,
         },
@@ -124,6 +125,7 @@ export default function AnalyzePage() {
         const r2 = await fetch('/api/ai-summary', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             upload_id: uploadHandle,
             business_goal: goal,
