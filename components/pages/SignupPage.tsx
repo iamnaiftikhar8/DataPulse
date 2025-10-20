@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Grid3X3, Mail, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
@@ -17,34 +17,39 @@ export default function SignupPage() {
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
-  setError(null);
+    e.preventDefault();
+    setError(null);
 
-  if (!agree) return setError("Please accept the Terms and Privacy Policy.");
-  if (password !== confirm) return setError("Passwords do not match.");
+    if (!agree) return setError("Please accept the Terms and Privacy Policy.");
+    if (password !== confirm) return setError("Passwords do not match.");
 
-  try {
-    const res = await fetch("https://test-six-fawn-47.vercel.app/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include", // IMPORTANT: sets dp_session_id cookie after signup
-      body: JSON.stringify({ full_name: fullName, email, password }),
-    });
+    try {
+      const res = await fetch("https://test-six-fawn-47.vercel.app/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // IMPORTANT: sets dp_session_id cookie after signup
+        body: JSON.stringify({ full_name: fullName, email, password }),
+      });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      setError(err.error || "Signup failed");
-      return;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setError(err.error || "Signup failed");
+        return;
+      }
+
+      // success → go to homepage 
+      window.location.href = "/";
+    } catch (err) {
+      console.error(err);
+      setError("Network error while signing up.");
     }
-
-    // success → go to homepage 
-    window.location.href = "/";
-  } catch (err) {
-    console.error(err);
-    setError("Network error while signing up.");
   }
-}
 
+  // ADD THIS FUNCTION - Google OAuth handler
+  const handleGoogleSignup = async () => {
+    // Direct redirect to your backend Google endpoint
+    window.location.href = "https://test-six-fawn-47.vercel.app/api/auth/google";
+  };
 
   return (
     <main className="relative min-h-screen w-full bg-black text-gray-200">
@@ -161,12 +166,19 @@ export default function SignupPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button type="button" onClick={() => console.log("google oauth")}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5">
+              {/* REPLACE THIS BUTTON - Add the onClick handler */}
+              <button 
+                type="button" 
+                onClick={handleGoogleSignup}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
+              >
                 <GoogleIcon className="h-4 w-4" /> Google
               </button>
-              <button type="button" onClick={() => console.log("sso oauth")}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5">
+              <button 
+                type="button" 
+                onClick={() => console.log("sso oauth")}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
+              >
                 <Grid3X3 className="h-4 w-4" aria-hidden /> SSO 
               </button>
             </div>

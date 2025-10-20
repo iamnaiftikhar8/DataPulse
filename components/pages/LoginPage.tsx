@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Github, Grid3X3, Mail, Lock } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -16,6 +16,26 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/";
+
+  // ADD THIS: Handle Google OAuth errors from callback
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      switch (error) {
+        case 'auth_failed':
+          setError('Google authentication failed. Please try again.');
+          break;
+        case 'user_creation_failed':
+          setError('Failed to create account. Please try again.');
+          break;
+        case 'no_code':
+          setError('Authentication cancelled or failed.');
+          break;
+        default:
+          setError('Authentication failed. Please try again.');
+      }
+    }
+  }, [searchParams]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,6 +73,12 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  // ADD THIS: Google OAuth handler
+  const handleGoogleLogin = async () => {
+    // Direct redirect to your backend Google endpoint
+    window.location.href = "https://test-six-fawn-47.vercel.app/api/auth/google";
+  };
 
   return (
     <main className="relative min-h-screen w-full bg-black text-gray-200">
@@ -144,21 +170,22 @@ export default function LoginPage() {
               <div className="relative mx-auto w-fit bg-black px-3 text-xs text-gray-400">Or continue with</div>
             </div>
 
-            {/* Social buttons (stubbed) */}
+            {/* Social buttons - UPDATED */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* REPLACE GitHub with Google */}
               <button
                 type="button"
-                onClick={() => alert("GitHub OAuth not yet wired")}
+                onClick={handleGoogleLogin}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
               >
-                <Github className="h-4 w-4" aria-hidden /> GitHub
+                <GoogleIcon className="h-4 w-4" /> Google
               </button>
               <button
                 type="button"
-                onClick={() => alert("SSO/SAML not yet wired")}
+                onClick={() => alert("SSO not yet wired")}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
               >
-                <Grid3X3 className="h-4 w-4" aria-hidden /> SSO / SAML
+                <Grid3X3 className="h-4 w-4" aria-hidden /> SSO 
               </button>
             </div>
 
@@ -197,5 +224,17 @@ export default function LoginPage() {
         }
       `}</style>
     </main>
+  );
+}
+
+// ADD THIS: Google Icon component
+function GoogleIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} aria-hidden>
+      <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.692 32.91 29.222 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.153 7.957 3.043l5.657-5.657C34.604 6.053 29.604 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"/>
+      <path fill="#FF3D00" d="M6.306 14.691l6.571 4.818C14.4 16.076 18.834 12 24 12c3.059 0 5.842 1.153 7.957 3.043l5.657-5.657C34.604 6.053 29.604 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+      <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.193l-6.197-5.238C29.165 35.671 26.744 36 24 36c-5.202 0-9.66-3.07-11.322-7.438l-6.54 5.036C9.457 39.556 16.227 44 24 44z"/>
+      <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.03 12.03 0 0 1-4.093 5.569l.003-.002 6.197 5.238C35.122 40.016 40 36 42.651 30.651c1.017-2.197 1.597-4.656 1.597-7.317 0-1.341-.138-2.651-.389-3.917z"/>
+    </svg>
   );
 }
