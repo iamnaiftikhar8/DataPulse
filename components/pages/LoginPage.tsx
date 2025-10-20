@@ -49,7 +49,7 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // If you're NOT using rewrites (cross-origin), uncomment:
-        // credentials: "include",
+        credentials: "include",
         body: JSON.stringify({ email, password, remember }),
       });
 
@@ -66,7 +66,7 @@ export default function LoginPage() {
       }
 
       // success → go to next/dashboard
-      router.replace(next);
+ router.push('/analyze'); // Instead of '/'
     } catch (err) {
       console.error(err);
       setError("Network error while logging in.");
