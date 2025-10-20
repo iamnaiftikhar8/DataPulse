@@ -180,13 +180,7 @@ export default function LoginPage() {
               >
                 <GoogleIcon className="h-4 w-4" /> Google
               </button>
-              <button
-                type="button"
-                onClick={() => alert("SSO not yet wired")}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
-              >
-                <Grid3X3 className="h-4 w-4" aria-hidden /> SSO 
-              </button>
+            
             </div>
 
             {error && <p className="text-sm text-red-400">{error}</p>}
