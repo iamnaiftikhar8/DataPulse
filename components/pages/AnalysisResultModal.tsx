@@ -1,8 +1,8 @@
-// components/pages/AnalysisResultModal.tsx - FIXED VERSION
+// components/pages/AnalysisResultModal.tsx - COMPLETE ENHANCED VERSION
 'use client';
 
 import React from 'react';
-import { Download, X } from 'lucide-react';
+import { Download, X, AlertTriangle, TrendingUp, Rocket, Lightbulb, Target, BarChart3 } from 'lucide-react';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend,
   CartesianGrid, ReferenceLine, Brush, BarChart, Bar, PieChart, Pie, Cell, Label
@@ -208,8 +208,8 @@ function ProPieChart({
 // -----------------------------
 // Card primitives
 // -----------------------------
-const Card: React.FC<React.PropsWithChildren<{ title: string }>> = ({ title, children }) => (
-  <div className="rounded-2xl border border-white/10 bg-black/50 p-6">
+const Card: React.FC<React.PropsWithChildren<{ title: string; className?: string }>> = ({ title, className = '', children }) => (
+  <div className={`rounded-2xl border border-white/10 bg-black/50 p-6 ${className}`}>
     <h3 className="text-sm font-semibold text-white">{title}</h3>
     <div className="mt-3">{children}</div>
   </div>
@@ -222,6 +222,51 @@ const Stat: React.FC<{ label: string; value: React.ReactNode; right?: React.Reac
       <div className="mt-1 text-xl font-bold text-white">{value}</div>
     </div>
     {right}
+  </div>
+);
+
+// -----------------------------
+// AI Summary Section Components
+// -----------------------------
+const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; subtitle?: string }> = ({ icon, title, subtitle }) => (
+  <div className="flex items-center gap-3 mb-4">
+    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/10">
+      {icon}
+    </div>
+    <div>
+      <h4 className="text-sm font-semibold text-white">{title}</h4>
+      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+    </div>
+  </div>
+);
+
+const InsightItem: React.FC<{ 
+  icon: React.ReactNode; 
+  title: string; 
+  items: string[]; 
+  color?: string;
+  badge?: string;
+}> = ({ icon, title, items, color = "gray", badge }) => (
+  <div className="mb-6 last:mb-0">
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h5 className="text-xs font-semibold text-white">{title}</h5>
+      </div>
+      {badge && (
+        <span className={`text-xs px-2 py-1 rounded-full bg-${color}-500/20 text-${color}-400 border border-${color}-500/30`}>
+          {badge}
+        </span>
+      )}
+    </div>
+    <div className="space-y-2">
+      {items.map((item, index) => (
+        <div key={index} className="flex items-start gap-3 group">
+          <div className={`w-1.5 h-1.5 rounded-full bg-${color}-400 mt-2 flex-shrink-0`} />
+          <p className="text-sm text-gray-200 group-hover:text-white transition-colors flex-1">{item}</p>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
@@ -240,7 +285,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
 
   const p = data?.profiling ?? {};
   const k = data?.kpis ?? {};
-  const ai = data?.detailed_summary ?? null;
+  const ai = data?.detailed_summary ?? ({} as any);
 
   const aiParagraph =
     ai?.executive_overview ??
@@ -344,28 +389,161 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
           </div>
         )}
 
-        {/* AI Insights */}
-        <div className="mt-6">
-          <Card title="AI Executive Summary">
-            <p className="text-sm leading-6 text-gray-200 whitespace-pre-wrap">{aiParagraph}</p>
+        {/* Enhanced AI Insights */}
+        <div className="mt-8">
+          <Card title="AI Executive Summary" className="bg-gradient-to-br from-white/[0.03] to-white/[0.01]">
+            {/* Executive Overview */}
+            <SectionHeader 
+              icon={<BarChart3 className="h-4 w-4 text-cyan-400" />} 
+              title="Executive Overview" 
+              subtitle="High-level business insights and data significance"
+            />
+            <div className="bg-white/5 rounded-lg p-4 mb-6">
+              <p className="text-sm leading-6 text-gray-200 whitespace-pre-wrap">
+                {aiParagraph}
+              </p>
+            </div>
 
-            {ai?.key_trends?.length ? (
-              <div className="mt-4">
-                <h4 className="text-xs font-semibold text-gray-400">Key Trends</h4>
-                <ul className="mt-1 list-disc pl-5 text-sm text-gray-200">
-                  {ai.key_trends.map((t: string, i: number) => <li key={i}>{t}</li>)}
-                </ul>
-              </div>
-            ) : null}
+            {/* Data Quality Assessment */}
+            {ai?.data_quality_assessment && (
+              <>
+                <SectionHeader 
+                  icon={<AlertTriangle className="h-4 w-4 text-amber-400" />} 
+                  title="Data Quality Assessment" 
+                  subtitle="Reliability and completeness evaluation"
+                />
+                <div className="bg-gradient-to-r from-amber-500/10 to-transparent rounded-lg p-4 mb-6 border-l-4 border-amber-400">
+                  <p className="text-sm leading-6 text-gray-200">
+                    {ai.data_quality_assessment}
+                  </p>
+                </div>
+              </>
+            )}
 
-            {ai?.action_items_quick_wins?.length ? (
-              <div className="mt-4">
-                <h4 className="text-xs font-semibold text-gray-400">Quick Wins</h4>
-                <ul className="mt-1 list-disc pl-5 text-sm text-gray-200">
-                  {ai.action_items_quick_wins.map((t: string, i: number) => <li key={i}>{t}</li>)}
-                </ul>
-              </div>
-            ) : null}
+            {/* Key Trends & Business Implications - Side by Side */}
+            <div className="grid gap-6 md:grid-cols-2 mb-6">
+              {/* Key Trends */}
+              {ai?.key_trends?.length ? (
+                <div className="bg-gradient-to-br from-cyan-500/5 to-transparent rounded-xl p-4 border border-cyan-500/20">
+                  <InsightItem
+                    icon={<TrendingUp className="h-4 w-4 text-cyan-400" />}
+                    title="Key Trends & Patterns"
+                    items={ai.key_trends}
+                    color="cyan"
+                    badge="Patterns"
+                  />
+                </div>
+              ) : null}
+
+              {/* Business Implications */}
+              {ai?.business_implications?.length ? (
+                <div className="bg-gradient-to-br from-purple-500/5 to-transparent rounded-xl p-4 border border-purple-500/20">
+                  <InsightItem
+                    icon={<Target className="h-4 w-4 text-purple-400" />}
+                    title="Business Implications"
+                    items={ai.business_implications}
+                    color="purple"
+                    badge="Impact"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            {/* Strategic Recommendations */}
+            {(ai?.recommendations?.short_term?.length || ai?.recommendations?.long_term?.length) && (
+              <>
+                <SectionHeader 
+                  icon={<Lightbulb className="h-4 w-4 text-blue-400" />} 
+                  title="Strategic Recommendations" 
+                  subtitle="Actionable insights for business improvement"
+                />
+                <div className="grid gap-4 mb-6">
+                  {/* Short-term Recommendations */}
+                  {ai.recommendations?.short_term?.length ? (
+                    <div className="bg-gradient-to-r from-blue-500/10 to-transparent rounded-xl p-4 border-l-4 border-blue-400">
+                      <InsightItem
+                        icon={<Rocket className="h-4 w-4 text-blue-400" />}
+                        title="Short-term Actions (0-3 months)"
+                        items={ai.recommendations.short_term}
+                        color="blue"
+                        badge="Quick Start"
+                      />
+                    </div>
+                  ) : null}
+
+                  {/* Long-term Recommendations */}
+                  {ai.recommendations?.long_term?.length ? (
+                    <div className="bg-gradient-to-r from-violet-500/10 to-transparent rounded-xl p-4 border-l-4 border-violet-400">
+                      <InsightItem
+                        icon={<BarChart3 className="h-4 w-4 text-violet-400" />}
+                        title="Long-term Strategies (3-12 months)"
+                        items={ai.recommendations.long_term}
+                        color="violet"
+                        badge="Strategic"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            )}
+
+            {/* Quick Wins & Risk Alerts - Side by Side */}
+            <div className="grid gap-6 md:grid-cols-2 mb-6">
+              {/* Quick Wins */}
+              {ai?.action_items_quick_wins?.length ? (
+                <div className="bg-gradient-to-br from-emerald-500/5 to-transparent rounded-xl p-4 border border-emerald-500/20">
+                  <InsightItem
+                    icon={<Rocket className="h-4 w-4 text-emerald-400" />}
+                    title="Immediate Quick Wins"
+                    items={ai.action_items_quick_wins}
+                    color="emerald"
+                    badge="High Impact"
+                  />
+                </div>
+              ) : null}
+
+              {/* Risk Alerts */}
+              {ai?.risk_alerts?.length ? (
+                <div className="bg-gradient-to-br from-rose-500/5 to-transparent rounded-xl p-4 border border-rose-500/20">
+                  <InsightItem
+                    icon={<AlertTriangle className="h-4 w-4 text-rose-400" />}
+                    title="Risk Alerts & Considerations"
+                    items={ai.risk_alerts}
+                    color="rose"
+                    badge="Attention"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            {/* Predictive Insights & Industry Comparison - Side by Side */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Predictive Insights */}
+              {ai?.predictive_insights?.length ? (
+                <div className="bg-gradient-to-br from-amber-500/5 to-transparent rounded-xl p-4 border border-amber-500/20">
+                  <InsightItem
+                    icon={<TrendingUp className="h-4 w-4 text-amber-400" />}
+                    title="Predictive Insights"
+                    items={ai.predictive_insights}
+                    color="amber"
+                    badge="Future"
+                  />
+                </div>
+              ) : null}
+
+              {/* Industry Comparison */}
+              {ai?.industry_comparison && (
+                <div className="bg-gradient-to-br from-indigo-500/5 to-transparent rounded-xl p-4 border border-indigo-500/20">
+                  <SectionHeader 
+                    icon={<BarChart3 className="h-4 w-4 text-indigo-400" />} 
+                    title="Industry Benchmarking" 
+                  />
+                  <p className="text-sm leading-6 text-gray-200 mt-3">
+                    {ai.industry_comparison}
+                  </p>
+                </div>
+              )}
+            </div>
           </Card>
         </div>
       </div>

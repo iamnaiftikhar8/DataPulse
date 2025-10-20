@@ -3,7 +3,12 @@ export type DetailedSummary = {
   executive_overview: string;
   key_trends: string[];
   action_items_quick_wins: string[];
-};
+  data_quality_assessment?: string;
+  business_implications?: string[];
+  recommendations?: {
+  short_term: string[];
+  long_term: string[];
+};};
 // src/types.ts
 export type AnalysisResult = {
   profiling: {
