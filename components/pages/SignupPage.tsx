@@ -16,34 +16,36 @@ export default function SignupPage() {
   const [loading, setLoading]   = useState(false);
   const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
+  // In your SignupPage.tsx, update the handleSubmit function:
 
-    if (!agree) return setError("Please accept the Terms and Privacy Policy.");
-    if (password !== confirm) return setError("Passwords do not match.");
+async function handleSubmit(e: React.FormEvent) {
+  e.preventDefault();
+  setError(null);
 
-    try {
-      const res = await fetch("https://test-six-fawn-47.vercel.app/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // IMPORTANT: sets dp_session_id cookie after signup
-        body: JSON.stringify({ full_name: fullName, email, password }),
-      });
+  if (!agree) return setError("Please accept the Terms and Privacy Policy.");
+  if (password !== confirm) return setError("Passwords do not match.");
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setError(err.error || "Signup failed");
-        return;
-      }
+  try {
+    const res = await fetch("https://test-six-fawn-47.vercel.app/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // IMPORTANT: sets dp_session_id cookie after signup
+      body: JSON.stringify({ full_name: fullName, email, password }),
+    });
 
-      // success → go to homepage 
-      window.location.href = "/";
-    } catch (err) {
-      console.error(err);
-      setError("Network error while signing up.");
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setError(err.error || "Signup failed");
+      return;
     }
+
+    // ✅ FIXED: Redirect to analyze page instead of home
+    window.location.href = "/analyze";
+  } catch (err) {
+    console.error(err);
+    setError("Network error while signing up.");
   }
+}
 
   // ADD THIS FUNCTION - Google OAuth handler
   const handleGoogleSignup = async () => {

@@ -1,11 +1,11 @@
-// components/pages/AnalyzePage.tsx - MODAL VERSION
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { UploadCloud, FileSpreadsheet, RotateCcw } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, RotateCcw, LogIn } from 'lucide-react';
 import jsPDF from 'jspdf';
 import AnalysisResultModal from '@/components/pages/AnalysisResultModal';
 import type { AnalysisResult, DetailedSummary } from '@/src/types';
+import { useRouter } from 'next/navigation';
 
 type Status = 'idle' | 'uploading' | 'analyzing' | 'done';
 
@@ -14,6 +14,8 @@ export default function AnalyzePage() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [progress, setProgress] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
   const [goal] = useState('improve profitability');
   const [audience] = useState<'executive' | 'analyst' | 'product' | 'sales'>('executive');
@@ -22,6 +24,36 @@ export default function AnalyzePage() {
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inFlight = useRef(false);
+  const router = useRouter();
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  // Function to check if user is authenticated
+  async function checkAuthStatus() {
+    try {
+      setIsCheckingAuth(true);
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://test-six-fawn-47.vercel.app';
+      const response = await fetch(`${API_BASE}/api/auth/check`, {
+        method: 'GET',
+        credentials: 'include', // Important for cookies
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsAuthenticated(data.authenticated);
+      } else {
+        setIsAuthenticated(false);
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      setIsAuthenticated(false);
+    } finally {
+      setIsCheckingAuth(false);
+    }
+  }
 
   // OPTIONAL: ensure a server session exists if the cookie is missing
   useEffect(() => {
@@ -48,6 +80,12 @@ export default function AnalyzePage() {
   }
 
   function onBrowseClick() {
+    // Check authentication before allowing file browse
+    if (!isAuthenticated) {
+      alert('Please log in first to generate a report.');
+      router.push('/login?next=/analyze');
+      return;
+    }
     inputRef.current?.click();
   }
 
@@ -77,6 +115,7 @@ export default function AnalyzePage() {
       const r1 = await fetch('/api/analyze', {
         method: 'POST',
         body: formData,
+        credentials: 'include', // Important: include cookies
         headers: {
           'X-Idempotency-Key': idem,
         },
@@ -88,7 +127,9 @@ export default function AnalyzePage() {
         inFlight.current = false;
         setStatus('idle');
         setProgress(0);
+        setIsAuthenticated(false);
         alert('Please log in first to generate a report.');
+        router.push('/login?next=/analyze');
         return;
       }
 
@@ -124,6 +165,7 @@ export default function AnalyzePage() {
         const r2 = await fetch('/api/ai-summary', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             upload_id: uploadHandle,
             business_goal: goal,
@@ -170,6 +212,13 @@ export default function AnalyzePage() {
   }
 
   function onFilesSelected(filesList: FileList | null) {
+    // Check authentication first
+    if (!isAuthenticated) {
+      alert('Please log in first to generate a report.');
+      router.push('/login?next=/analyze');
+      return;
+    }
+
     const f = filesList?.[0];
     if (!f) return;
     if (inFlight.current) return; // guard repeated triggers
@@ -192,6 +241,14 @@ export default function AnalyzePage() {
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
+    
+    // Check authentication first
+    if (!isAuthenticated) {
+      alert('Please log in first to generate a report.');
+      router.push('/login?next=/analyze');
+      return;
+    }
+    
     if (e.dataTransfer.files?.length) onFilesSelected(e.dataTransfer.files);
   }
   
@@ -265,6 +322,67 @@ export default function AnalyzePage() {
 
   const canReset = status !== 'idle' || file !== null || progress > 0;
 
+  // Show loading state while checking auth
+  if (isCheckingAuth) {
+    return (
+      <main className="min-h-screen bg-black text-gray-200">
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+              <p className="text-gray-400">Checking authentication...</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <main className="min-h-screen bg-black text-gray-200">
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          {/* Header */}
+          <header className="mb-8">
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-white">Analytics</h1>
+              <p className="mt-1 text-sm text-gray-400">Upload data → analyze → AI summary → view results.</p>
+            </div>
+          </header>
+
+          {/* Login Required Card */}
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
+            <div className="max-w-md mx-auto">
+              <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <LogIn className="h-8 w-8 text-amber-400" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Authentication Required</h2>
+              <p className="text-gray-400 mb-6">
+                Please log in to generate reports and access all analytics features.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={() => router.push('/login?next=/analyze')}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-6 py-3 text-sm font-semibold text-black shadow ring-1 ring-white/10 transition-colors hover:bg-cyan-400"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Log In
+                </button>
+                <button
+                  onClick={() => router.push('/signup?next=/analyze')}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/10 transition-colors hover:bg-white/20"
+                >
+                  Sign Up
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-black text-gray-200">
       <div className="mx-auto max-w-6xl px-6 py-10">
@@ -273,6 +391,10 @@ export default function AnalyzePage() {
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-white">Analytics</h1>
             <p className="mt-1 text-sm text-gray-400">Upload data → analyze → AI summary → view results.</p>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <p className="text-xs text-green-400">Authenticated</p>
+            </div>
           </div>
           <button
             type="button"

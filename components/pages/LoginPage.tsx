@@ -37,42 +37,43 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (loading) return;
+  // In your LoginPage.tsx, update the onSubmit function:
 
-    setLoading(true);
-    setError(null);
+async function onSubmit(e: React.FormEvent) {
+  e.preventDefault();
+  if (loading) return;
 
-    try {
-      const res = await fetch(LOGIN_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // If you're NOT using rewrites (cross-origin), uncomment:
-        // credentials: "include",
-        body: JSON.stringify({ email, password, remember }),
-      });
+  setLoading(true);
+  setError(null);
 
-      if (!res.ok) {
-        // prefer detail, fall back to error or statusText
-        let msg = "Login failed";
-        try {
-          const data = await res.json();
-          msg = (data?.detail || data?.error || res.statusText || msg) as string;
-        } catch { /* ignore parse errors */ }
-        setError(msg);
-        setLoading(false);
-        return;
-      }
+  try {
+    const res = await fetch(LOGIN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // Important for cookies
+      body: JSON.stringify({ email, password, remember }),
+    });
 
-      // success → go to next/dashboard
-      router.replace(next);
-    } catch (err) {
-      console.error(err);
-      setError("Network error while logging in.");
+    if (!res.ok) {
+      let msg = "Login failed";
+      try {
+        const data = await res.json();
+        msg = (data?.detail || data?.error || res.statusText || msg) as string;
+      } catch { /* ignore parse errors */ }
+      setError(msg);
       setLoading(false);
+      return;
     }
+
+    // ✅ FIXED: Redirect to analyze page or next parameter
+    const redirectTo = next === '/' ? '/analyze' : next;
+    router.replace(redirectTo);
+  } catch (err) {
+    console.error(err);
+    setError("Network error while logging in.");
+    setLoading(false);
   }
+}
 
   // ADD THIS: Google OAuth handler
   const handleGoogleLogin = async () => {
