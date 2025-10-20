@@ -171,17 +171,15 @@ export default function LoginPage() {
             </div>
 
             {/* Social buttons - UPDATED */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {/* REPLACE GitHub with Google */}
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
-              >
-                <GoogleIcon className="h-4 w-4" /> Google
-              </button>
-            
-            </div>
+          <div className="flex justify-center">
+  <button 
+    type="button" 
+    onClick={handleGoogleLogin}
+    className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
+  >
+    <GoogleIcon className="h-4 w-4" /> Google
+  </button>
+</div>
 
             {error && <p className="text-sm text-red-400">{error}</p>}
           </form>
