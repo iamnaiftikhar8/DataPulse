@@ -1,5 +1,5 @@
 // /lib/db.ts
-import sql from 'mssql';
+/*import sql from 'mssql';
 
 const config: sql.config = {
   user: process.env.DB_USER!,
@@ -18,3 +18,4 @@ export async function getPool() {
 }
 
 export { sql };
+*/

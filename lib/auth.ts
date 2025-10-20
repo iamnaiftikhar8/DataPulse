@@ -1,5 +1,5 @@
 // /lib/auth.ts
-import jwt from 'jsonwebtoken';
+/*import jwt from 'jsonwebtoken';
 
 export type AuthedUser = { id: number; email: string };
 
@@ -26,4 +26,4 @@ function parseCookie(str: string): Record<string,string> {
     acc[k] = decodeURIComponent(v.join('=') || '');
     return acc;
   }, {} as Record<string,string>);
-}
+}*/

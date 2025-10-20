@@ -1,5 +1,5 @@
 // /lib/credits.ts
-import { getPool, sql } from './db';
+/*import { getPool, sql } from './db';
 import crypto from 'crypto';
 
 export async function tryConsumeCredit(opts: { userId: number; idemKey?: string }) {
@@ -17,4 +17,4 @@ export async function tryConsumeCredit(opts: { userId: number; idemKey?: string 
   const ok = Boolean(result.output.ok);
   const reason = String(result.output.reason || '');
   return { ok, reason, idemKey };
-}
+}*/
