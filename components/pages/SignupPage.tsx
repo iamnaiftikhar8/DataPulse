@@ -165,17 +165,15 @@ export default function SignupPage() {
               <div className="relative mx-auto w-fit bg-black px-3 text-xs text-gray-400">Or sign up with</div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {/* REPLACE THIS BUTTON - Add the onClick handler */}
-              <button 
-                type="button" 
-                onClick={handleGoogleSignup}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
-              >
-                <GoogleIcon className="h-4 w-4" /> Google
-              </button>
-           
-            </div>
+            <div className="flex justify-center">
+  <button 
+    type="button" 
+    onClick={handleGoogleSignup}
+    className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
+  >
+    <GoogleIcon className="h-4 w-4" /> Google
+  </button>
+</div>
           </form>
 
           <p className="mt-6 text-center text-xs text-gray-500">
