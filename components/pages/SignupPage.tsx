@@ -38,7 +38,7 @@ export default function SignupPage() {
       }
 
       // success → go to homepage 
-    window.location.href = "/analyze";
+    window.location.href = "/";
     } catch (err) {
       console.error(err);
       setError("Network error while signing up.");
