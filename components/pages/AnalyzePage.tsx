@@ -205,65 +205,180 @@ export default function AnalyzePage() {
   function onDragLeave() {
     setDragOver(false);
   }
+// Text-only PDF export (for the modal) - COMPLETE VERSION
+function exportPdfTextOnly() {
+  if (!result) return;
 
-  // Text-only PDF export (for the modal)
-  function exportPdfTextOnly() {
-    if (!result) return;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  let y = 14;
 
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    let y = 14;
+  const addTitle = (t: string) => { 
+    doc.setFont('Times new Roman', 'bold'); 
+    doc.setFontSize(16); 
+    doc.text(t, 12, y); 
+    y += 8; 
+  };
+  
+  const addH2 = (t: string) => { 
+    doc.setFont('Times new Roman', 'bold'); 
+    doc.setFontSize(12); 
+    doc.text(t, 12, y); 
+    y += 6; 
+  };
+  
+  const addH3 = (t: string) => { 
+    doc.setFont('Times new Roman', 'bold'); 
+    doc.setFontSize(11); 
+    doc.text(t, 12, y); 
+    y += 5; 
+  };
+  
+  const addText = (t: string) => {
+    if (!t) return;
+    doc.setFont('Times new Roman', 'normal'); 
+    doc.setFontSize(11);
+    const lines = doc.splitTextToSize(t, pageW - 24);
+    for (const line of lines) {
+      if (y > 282) { doc.addPage(); y = 14; }
+      doc.text(line, 12, y); 
+      y += 6;
+    }
+    y += 1;
+  };
+  
+  const addList = (items: string[]) => { 
+    if (!items?.length) return;
+    items.forEach(it => addText(`• ${it}`)); 
+  };
 
-    const addTitle = (t: string) => { doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.text(t, 12, y); y += 8; };
-    const addH2    = (t: string) => { doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text(t, 12, y); y += 6; };
-    const addText  = (t: string) => {
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-      const lines = doc.splitTextToSize(t, pageW - 24);
-      for (const line of lines) {
-        if (y > 282) { doc.addPage(); y = 14; }
-        doc.text(line, 12, y); y += 6;
-      }
-      y += 1;
-    };
-    const addList = (items: string[]) => { items.forEach(it => addText(`• ${it}`)); };
+  doc.text('', 0, 0); // ensure font init
 
-    doc.text('', 0, 0); // ensure font init
+  // Title
+  addTitle('DataPulse Analysis Report');
 
-    // Title
-    addTitle('DataPulse Analysis Report');
+  // Profiling
+  const p = result.profiling ?? {};
+  addH2('Data Profile');
+  addText(`Rows: ${p.rows ?? '-'}    Columns: ${p.columns ?? '-'}`);
+  addText(`Missing Values: ${p.missing_total ?? 0}`);
+  if (p.numeric_columns?.length) addText(`Numeric Columns: ${p.numeric_columns.slice(0, 12).join(', ')}`);
 
-    // Profiling
-    const p = result.profiling ?? {};
-    addH2('Data Profile');
-    addText(`Rows: ${p.rows ?? '-'}    Columns: ${p.columns ?? '-'}`);
-    addText(`Missing Values: ${p.missing_total ?? 0}`);
-    if (p.numeric_columns?.length) addText(`Numeric Columns: ${p.numeric_columns.slice(0, 12).join(', ')}`);
+  // KPIs
+  const k = result.kpis ?? {};
+  addH2('Key Performance Indicators');
+  addText(`Total Rows: ${k.total_rows ?? p.rows ?? '-'}`);
+  addText(`Total Columns: ${k.total_columns ?? p.columns ?? '-'}`);
+  if (typeof k.missing_pct === 'number') addText(`Missing %: ${k.missing_pct}%`);
+  if (typeof k.duplicate_rows === 'number') addText(`Duplicates: ${k.duplicate_rows}`);
+  if (typeof k.outliers_total === 'number') addText(`Outliers: ${k.outliers_total}`);
+  if (k.rows_per_day) addText(`Rows per Day: ${k.rows_per_day}`);
 
-    // KPIs
-    const k = result.kpis ?? {};
-    addH2('Key Performance Indicators');
-    addText(`Total Rows: ${k.total_rows ?? p.rows ?? '-'}`);
-    addText(`Total Columns: ${k.total_columns ?? p.columns ?? '-'}`);
-    if (typeof k.missing_pct === 'number') addText(`Missing %: ${k.missing_pct}%`);
-    if (typeof k.duplicate_rows === 'number') addText(`Duplicates: ${k.duplicate_rows}`);
-    if (typeof k.outliers_total === 'number') addText(`Outliers: ${k.outliers_total}`);
+  // Time analysis if available
+  if (k.time?.date_column) {
+    addH3('Time Analysis');
+    addText(`Date Column: ${k.time.date_column}`);
+    addText(`Date Range: ${k.time.min_date} to ${k.time.max_date}`);
+    if (k.time.days_covered) addText(`Days Covered: ${k.time.days_covered}`);
+  }
 
-    // AI Summary
-    const ai = result.detailed_summary ?? null;
-    const aiParagraph =
-      ai?.executive_overview ??
-      result.insights?.summary ??
-      '';
+  // High-variance columns if available
+  const topVariance = (k as any)?.top_variance_numeric_cols;
+  if (Array.isArray(topVariance) && topVariance.length) {
+    addH3('High Variance Columns');
+    addText(topVariance.join(', '));
+  }
 
-    if (aiParagraph || ai?.key_trends?.length || ai?.action_items_quick_wins?.length) {
-      addH2('AI Executive Summary');
-      if (aiParagraph) addText(aiParagraph);
-      if (ai?.key_trends?.length) { addH2('Key Trends'); addList(ai.key_trends); }
-      if (ai?.action_items_quick_wins?.length) { addH2('Quick Wins'); addList(ai.action_items_quick_wins); }
+  // AI Summary - COMPLETE VERSION WITH ALL SECTIONS
+  const ai = result.detailed_summary ?? {} as any;
+  const aiParagraph = ai?.executive_overview ?? result.insights?.summary ?? '';
+
+  if (aiParagraph || Object.keys(ai).length > 0) {
+    addH2('AI Executive Summary');
+    
+    // Executive Overview
+    if (aiParagraph) {
+      addH3('Executive Overview');
+      addText(aiParagraph);
     }
 
-    doc.save('DataPulse-Report.pdf');
+    // Data Quality Assessment
+    if (ai?.data_quality_assessment) {
+      addH3('Data Quality Assessment');
+      addText(ai.data_quality_assessment);
+    }
+
+    // Key Trends
+    if (ai?.key_trends?.length) {
+      addH3('Key Trends & Patterns');
+      addList(ai.key_trends);
+    }
+
+    // Business Implications
+    if (ai?.business_implications?.length) {
+      addH3('Business Implications');
+      addList(ai.business_implications);
+    }
+
+    // Strategic Recommendations
+    if (ai?.recommendations) {
+      // Short-term recommendations
+      if (ai.recommendations.short_term?.length) {
+        addH3('Short-term Recommendations (0-3 months)');
+        addList(ai.recommendations.short_term);
+      }
+      
+      // Long-term recommendations
+      if (ai.recommendations.long_term?.length) {
+        addH3('Long-term Strategies (3-12 months)');
+        addList(ai.recommendations.long_term);
+      }
+    }
+
+    // Quick Wins
+    if (ai?.action_items_quick_wins?.length) {
+      addH3('Immediate Quick Wins');
+      addList(ai.action_items_quick_wins);
+    }
+
+    // Risk Alerts
+    if (ai?.risk_alerts?.length) {
+      addH3('Risk Alerts & Considerations');
+      addList(ai.risk_alerts);
+    }
+
+    // Predictive Insights
+    if (ai?.predictive_insights?.length) {
+      addH3('Predictive Insights');
+      addList(ai.predictive_insights);
+    }
+
+    // Industry Comparison
+    if (ai?.industry_comparison) {
+      addH3('Industry Benchmarking');
+      addText(ai.industry_comparison);
+    }
+
+    // Additional sections that might exist
+    if (ai?.anomalies_detected?.length) {
+      addH3('Anomalies Detected');
+      addList(ai.anomalies_detected);
+    }
+
+    if (ai?.success_metrics?.length) {
+      addH3('Success Metrics');
+      addList(ai.success_metrics);
+    }
+
+    if (ai?.next_steps?.length) {
+      addH3('Recommended Next Steps');
+      addList(ai.next_steps);
+    }
   }
+
+ 
+  doc.save('DataPulse-Complete-Report.pdf');
+}
 
   const canReset = status !== 'idle' || file !== null || progress > 0;
 

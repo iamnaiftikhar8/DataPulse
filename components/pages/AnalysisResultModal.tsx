@@ -88,7 +88,7 @@ function Sparkline({ data, dataKey = 'y' }: { data: any[]; dataKey?: string }) {
 // -----------------------------
 // Charts
 // -----------------------------
-function ProLineChart({
+/*function ProLineChart({
   data,
   dataKey = "y",
   name = "Series",
@@ -204,7 +204,7 @@ function ProPieChart({
     </div>
   );
 }
-
+*/
 // -----------------------------
 // Card primitives
 // -----------------------------
@@ -234,8 +234,8 @@ const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; subtitle?:
       {icon}
     </div>
     <div>
-      <h4 className="text-sm font-semibold text-white">{title}</h4>
-      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+      <h4 className="text-sm text-justify font-semibold text-white">{title}</h4>
+      {subtitle && <p className="text-xs text-justify text-gray-400 mt-1">{subtitle}</p>}
     </div>
   </div>
 );
@@ -375,7 +375,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
         </div>
 
         {/* Charts */}
-        {(data as any).charts && (
+        {/*(data as any).charts && (
           <div className="mt-6 grid gap-6 md:grid-cols-2">
             <Card title="Trend">
               <ProLineChart data={(data as any).charts.line} name="Trend" />
@@ -387,7 +387,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
               <ProPieChart data={(data as any).charts.pie} />
             </Card>
           </div>
-        )}
+        )*/}
 
         {/* Enhanced AI Insights */}
         <div className="mt-8">
@@ -399,7 +399,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
               subtitle="High-level business insights and data significance"
             />
             <div className="bg-white/5 rounded-lg p-4 mb-6">
-              <p className="text-sm leading-6 text-gray-200 whitespace-pre-wrap">
+              <p className="text-sm text-justify leading-6 text-gray-200 whitespace-pre-wrap">
                 {aiParagraph}
               </p>
             </div>
@@ -413,7 +413,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
                   subtitle="Reliability and completeness evaluation"
                 />
                 <div className="bg-gradient-to-r from-amber-500/10 to-transparent rounded-lg p-4 mb-6 border-l-4 border-amber-400">
-                  <p className="text-sm leading-6 text-gray-200">
+                  <p className="text-sm text-justify leading-6 text-gray-200">
                     {ai.data_quality_assessment}
                   </p>
                 </div>
@@ -538,7 +538,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
                     icon={<BarChart3 className="h-4 w-4 text-indigo-400" />} 
                     title="Industry Benchmarking" 
                   />
-                  <p className="text-sm leading-6 text-gray-200 mt-3">
+                  <p className="text-sm text-justify leading-6 text-gray-200 mt-3">
                     {ai.industry_comparison}
                   </p>
                 </div>
