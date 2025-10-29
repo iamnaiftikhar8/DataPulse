@@ -1,19 +1,26 @@
-// components/pages/AnalyzePage.tsx - MODAL VERSION
+// components/pages/AnalyzePage.tsx - ENHANCED VERSION
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { UploadCloud, FileSpreadsheet, RotateCcw } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, RotateCcw, User, LogOut } from 'lucide-react';
 import jsPDF from 'jspdf';
 import AnalysisResultModal from '@/components/pages/AnalysisResultModal';
 import type { AnalysisResult, DetailedSummary } from '@/src/types';
 
 type Status = 'idle' | 'uploading' | 'analyzing' | 'done';
 
+interface UserInfo {
+  user_id: string;
+  session_id: string;
+  authenticated: boolean;
+}
+
 export default function AnalyzePage() {
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [progress, setProgress] = useState(0);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   
   const [goal] = useState('improve profitability');
   const [audience] = useState<'executive' | 'analyst' | 'product' | 'sales'>('executive');
@@ -22,19 +29,111 @@ export default function AnalyzePage() {
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inFlight = useRef(false);
+// Add this state variable
+  const [usageStats, setUsageStats] = useState<{
+  today_usage: number;
+  daily_limit: number;
+  remaining: number;
+} | null>(null);
 
-  // OPTIONAL: ensure a server session exists if the cookie is missing
+  // ENHANCED: Check authentication status on component mount
+ useEffect(() => {
+  if (userInfo?.authenticated) {
+    fetchUsageStats();
+  }
+}, [userInfo]);
+
+// Update your fetchUsageStats function
+const fetchUsageStats = async () => {
+  try {
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+    console.log('🔍 Fetching usage stats...');
+    
+    const response = await fetch(`${API_BASE}/api/usage/stats`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    
+    if (response.ok) {
+      const stats = await response.json();
+      console.log('✅ Usage stats received:', stats);
+      setUsageStats(stats);
+    } else {
+      console.warn('❌ Failed to fetch usage stats:', response.status);
+      // Set default stats as fallback
+      setUsageStats({
+        today_usage: 0,
+        daily_limit: 40,
+        remaining: 40
+      });
+    }
+  } catch (error) {
+    console.error('💥 Fetch usage stats failed:', error);
+    // Set default stats on error
+    setUsageStats({
+      today_usage: 0,
+      daily_limit: 40,
+      remaining: 40
+    });
+  }
+};
+
+  // ENHANCED: Function to check authentication status
+  const checkAuthStatus = async () => {
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+      const response = await fetch(`${API_BASE}/api/auth/me`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUserInfo(userData);
+        console.log('✅ User authenticated:', userData);
+      } else {
+        console.log('❌ User not authenticated');
+        setUserInfo(null);
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      setUserInfo(null);
+    }
+  };
+
+  // ENHANCED: Ensure session exists
   useEffect(() => {
     (async () => {
       try {
-        const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://test-six-fawn-47.vercel.app';
+        const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
         await fetch(`${API_BASE}/api/session/start`, {
           method: 'POST',
           credentials: 'include',
         });
-      } catch {}
+        // Re-check auth status after session start
+        checkAuthStatus();
+      } catch (error) {
+        console.error('Session start failed:', error);
+      }
     })();
   }, []);
+
+  // ENHANCED: Logout function
+  const handleLogout = async () => {
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+      await fetch(`${API_BASE}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      setUserInfo(null);
+      resetAll();
+      // Optional: Redirect to login page
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   function resetAll() {
     setFile(null);
@@ -58,23 +157,39 @@ export default function AnalyzePage() {
     return [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  // Enhanced backend function with paywall/auth logic
+  // ENHANCED: Backend function with better auth handling
   async function sendToBackend(selected: File) {
-    if (inFlight.current) return; // re-entrancy guard
+    if (inFlight.current) return;
     inFlight.current = true;
 
+    // Check auth status before proceeding
+    if (!userInfo?.authenticated) {
+      alert('Please log in first to generate a report.');
+      inFlight.current = false;
+      return;
+    }
+
+  // Check if user has remaining reports
+  if (usageStats && usageStats.remaining <= 0) {
+    alert(`You've used all ${usageStats.daily_limit} free reports today. Please upgrade to continue.`);
+    // Redirect to pricing page
+    window.location.href = '/pricing';
+    inFlight.current = false;
+    return;
+  }
     setStatus('analyzing');
     setProgress(10);
 
     const tick = setInterval(() => setProgress(p => (p < 92 ? p + 5 : p)), 200);
 
     try {
-      // Use Next.js API route instead of direct backend call
       const formData = new FormData();
       formData.append('file', selected);
 
       const idem = await fileSha256Hex(selected);
-      const r1 = await fetch('/api/analyze', {
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+      
+      const r1 = await fetch(`${API_BASE}/api/analyze`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -83,18 +198,18 @@ export default function AnalyzePage() {
         },
       });
 
-      // Paywall and auth logic
+      // Enhanced auth error handling
       if (r1.status === 401) {
         clearInterval(tick);
         inFlight.current = false;
         setStatus('idle');
         setProgress(0);
-        alert('Please log in first to generate a report.');
+        setUserInfo(null); // Clear user info on auth failure
+        alert('Session expired. Please log in again.');
         return;
       }
 
       if (r1.status === 402) {
-        // paywall branch
         let pay = null;
         try { pay = await r1.json(); } catch {}
         const url = pay?.checkout_url;
@@ -107,6 +222,9 @@ export default function AnalyzePage() {
         } else {
           alert('You\'ve used your free report. Please upgrade to continue.');
         }
+         
+      // Redirect to pricing page
+        window.location.href = '/pricing';
         return;
       }
 
@@ -120,9 +238,9 @@ export default function AnalyzePage() {
       // AI summary logic
       const uploadHandle = quick.upload_id ?? quick.content_hash;
       let detailedNormalized: DetailedSummary | null = null;
-      
+
       if (uploadHandle) {
-        const r2 = await fetch('/api/ai-summary', {
+        const r2 = await fetch(`${API_BASE}/api/ai-summary`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -135,17 +253,18 @@ export default function AnalyzePage() {
 
         if (r2.ok) {
           const data = await r2.json();
-          if (data?.executive_overview || data?.key_trends || data?.action_items_quick_wins) {
+          
+          if (data) {
             detailedNormalized = {
               executive_overview: data.executive_overview ?? '',
+              data_quality_assessment: data.data_quality_assessment ?? '',
               key_trends: Array.isArray(data.key_trends) ? data.key_trends : [],
+              business_implications: Array.isArray(data.business_implications) ? data.business_implications : [],
+              recommendations: data.recommendations || { short_term: [], long_term: [] },
               action_items_quick_wins: Array.isArray(data.action_items_quick_wins) ? data.action_items_quick_wins : [],
-            };
-          } else if (typeof data?.summary === 'string') {
-            detailedNormalized = {
-              executive_overview: data.summary,
-              key_trends: [],
-              action_items_quick_wins: [],
+              risk_alerts: Array.isArray(data.risk_alerts) ? data.risk_alerts : [],
+              predictive_insights: Array.isArray(data.predictive_insights) ? data.predictive_insights : [],
+              industry_comparison: data.industry_comparison ?? '',
             };
           }
         }
@@ -159,7 +278,7 @@ export default function AnalyzePage() {
       });
       setProgress(100);
       setStatus('done');
-      setModalOpen(true); // Open modal when analysis is complete
+      setModalOpen(true);
     } catch (e) {
       console.error(e);
       alert('Analyze failed. See console/network for details.');
@@ -174,7 +293,13 @@ export default function AnalyzePage() {
   function onFilesSelected(filesList: FileList | null) {
     const f = filesList?.[0];
     if (!f) return;
-    if (inFlight.current) return; // guard repeated triggers
+    if (inFlight.current) return;
+
+    // Check authentication before file processing
+    if (!userInfo?.authenticated) {
+      alert('Please log in first to generate a report.');
+      return;
+    }
 
     const ok =
       /\.xlsx?$/i.test(f.name) ||
@@ -194,6 +319,13 @@ export default function AnalyzePage() {
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
+    
+    // Check authentication before processing drop
+    if (!userInfo?.authenticated) {
+      alert('Please log in first to generate a report.');
+      return;
+    }
+    
     if (e.dataTransfer.files?.length) onFilesSelected(e.dataTransfer.files);
   }
   
@@ -272,7 +404,7 @@ function exportPdfTextOnly() {
   if (typeof k.missing_pct === 'number') addText(`Missing %: ${k.missing_pct}%`);
   if (typeof k.duplicate_rows === 'number') addText(`Duplicates: ${k.duplicate_rows}`);
   if (typeof k.outliers_total === 'number') addText(`Outliers: ${k.outliers_total}`);
-  if (k.rows_per_day) addText(`Rows per Day: ${k.rows_per_day}`);
+  //if (k.rows_per_day) addText(`Rows per Day: ${k.rows_per_day}`);
 
   // Time analysis if available
   if (k.time?.date_column) {
@@ -389,7 +521,7 @@ function exportPdfTextOnly() {
         <header className="mb-8 flex items-end justify-between">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-white">Analytics</h1>
-            <p className="mt-1 text-sm text-gray-400">Upload data → analyze → AI summary → view results.</p>
+            <p className="mt-1 text-sm text-gray-400">Upload data • analyze • AI summary • view results</p>
           </div>
           <button
             type="button"

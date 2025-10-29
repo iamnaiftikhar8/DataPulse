@@ -32,18 +32,18 @@ export default function LandingPage() {
     {
       icon: <ScanSearch className="h-5 w-5" aria-hidden />,
       title: "Data Profiling",
-      kicker: "Rows, columns, types & missing",
+      kicker: "Rows, columns & missing",
       points: [
-        "Row/column counts & schema detection",
-        "Type inference & outlier hints",
-        "Missing values, min/max, uniques",
+        "Row/column counts",
+        "Numeric Columns",
+        "Missing values",
       ],
     },
     {
       icon: <Gauge className="h-5 w-5" aria-hidden />,
       title: "Smart KPIs",
-      kicker: "Totals, averages & growth rates",
-      points: ["Totals, means & medians", "MoM/YoY growth", "Top categories"],
+      kicker: "Totals - Rows & Columns, Outliers",
+      points: ["Totals", "Outliers", "Duplicates"],
     },
     {
       icon: (
@@ -51,22 +51,23 @@ export default function LandingPage() {
           <LineChart className="h-5 w-5" aria-hidden />
         </div>
       ),
-      title: "Interactive Charts",
-      kicker: "Recharts: line",
-      points: ["Tooltips & legends", "Series toggles", "Export images/PDF"],
+      title: "Interactive AI-Powered Visualizations",
+      kicker: "Charts: Line, Pie, Scatter, Bar, Histogram",
+      points: ["AI Insights", "Visualize best charts based on DataSet", "Export PDF"],
     },
     {
       icon: <BrainCircuit className="h-5 w-5" aria-hidden />,
       title: "AI Insights",
       kicker: "Executive summary in plain English",
-      points: ["Highlights & anomalies", "Drivers & trends", "Next best actions"],
+      points: ["Executive Overview", "Data Quality Assessment", "Key Trends & Patterns", "Business Implications","Strategic Recommendations",
+        "Risk Alerts & Considerations","Predictive Insights"],
       note: (
         <div className="mt-3 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100">
           <div className="mb-1 flex items-center gap-2 font-semibold text-cyan-200">
             <Sparkles className="h-4 w-4" />
             Example Insight
           </div>
-          “Revenue rose 12.4% MoM led by EMEA; inventory turnover improved 18%.”
+          “Revenue rose 12.4% led by EMEA; inventory turnover improved 18%.”
         </div>
       ),
     },

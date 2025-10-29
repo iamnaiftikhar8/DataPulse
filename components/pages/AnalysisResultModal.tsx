@@ -1,15 +1,15 @@
-// components/pages/AnalysisResultModal.tsx - COMPLETE ENHANCED VERSION
+// components/pages/AnalysisResultModal.tsx - COMPLETE FIXED VERSION
 'use client';
 
 import React from 'react';
 import { Download, X, AlertTriangle, TrendingUp, Rocket, Lightbulb, Target, BarChart3 } from 'lucide-react';
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend,
-  CartesianGrid, ReferenceLine, Brush, BarChart, Bar, PieChart, Pie, Cell, Label
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip
 } from 'recharts';
 
 // Use the shared type so page.tsx and this modal agree.
 import type { AnalysisResult } from '@/src/types';
+import AICharts from '@/components/Charts/AICharts';
 
 // -----------------------------
 // Theme + helpers
@@ -29,7 +29,6 @@ const palette = {
   accent4: "#FBBF24",
   accent5: "#F87171",
 };
-const seriesOrder = [palette.accent1, palette.accent2, palette.accent3, palette.accent4, palette.accent5];
 
 const fmt = {
   n: (v: number | string) => {
@@ -85,126 +84,6 @@ function Sparkline({ data, dataKey = 'y' }: { data: any[]; dataKey?: string }) {
   );
 }
 
-// -----------------------------
-// Charts
-// -----------------------------
-/*function ProLineChart({
-  data,
-  dataKey = "y",
-  name = "Series",
-  syncId = "main-sync",
-  showMean = true,
-}: { data: { x: number | string; [k: string]: any }[]; dataKey?: string; name?: string; syncId?: string; showMean?: boolean; }) {
-  const gradId = React.useId();
-  const avg = data?.length ? data.reduce((s, d) => s + (Number(d?.[dataKey]) || 0), 0) / data.length : 0;
-  const axisStyle = { fontSize: 12, fill: palette.ticks };
-
-  return (
-    <div className="h-72">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} syncId={syncId} margin={{ top: 12, right: 24, bottom: 8, left: 8 }}>
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={palette.accent1} stopOpacity={0.9} />
-              <stop offset="100%" stopColor={palette.accent1} stopOpacity={0.15} />
-            </linearGradient>
-          </defs>
-
-          <CartesianGrid stroke={palette.grid} vertical={false} />
-          <XAxis dataKey="x" tick={axisStyle} axisLine={{ stroke: palette.grid }} tickLine={{ stroke: palette.grid }} />
-          <YAxis tick={axisStyle} axisLine={{ stroke: palette.grid }} tickLine={{ stroke: palette.grid }}>
-            <Label value={name} position="insideLeft" angle={-90} fill={palette.axis} style={{ fontSize: 11 }} />
-          </YAxis>
-
-          <Tooltip content={<CardTooltip />} />
-          <Legend verticalAlign="top" height={24} wrapperStyle={{ color: 'white', fontSize: 12 }} iconType="circle" />
-          {showMean && <ReferenceLine y={avg} stroke={palette.axis} strokeDasharray="3 3" />}
-
-          <Line
-            type="monotone"
-            name={name}
-            dataKey={dataKey}
-            stroke={`url(#${gradId})`}
-            strokeWidth={2.2}
-            dot={false}
-            activeDot={{ r: 4 }}
-          />
-          <Brush height={18} travellerWidth={10} stroke={palette.axis} />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function ProBarChart({
-  data,
-  dataKey = "value",
-  nameKey = "name",
-  name = "Value",
-  syncId = "main-sync",
-}: { data: { name: string; value: number }[]; dataKey?: string; nameKey?: string; name?: string; syncId?: string; }) {
-  const gradId = React.useId();
-  const axisStyle = { fontSize: 12, fill: palette.ticks };
-
-  return (
-    <div className="h-72">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} syncId={syncId} margin={{ top: 12, right: 24, bottom: 8, left: 8 }}>
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={palette.accent2} stopOpacity={0.95} />
-              <stop offset="100%" stopColor={palette.accent2} stopOpacity={0.2} />
-            </linearGradient>
-          </defs>
-
-          <CartesianGrid stroke={palette.grid} vertical={false} />
-          <XAxis dataKey={nameKey} tick={axisStyle} axisLine={{ stroke: palette.grid }} tickLine={{ stroke: palette.grid }} />
-          <YAxis tick={axisStyle} axisLine={{ stroke: palette.grid }} tickLine={{ stroke: palette.grid }} />
-          <Tooltip content={<CardTooltip />} />
-          <Legend verticalAlign="top" height={24} wrapperStyle={{ color: 'white', fontSize: 12 }} iconType="circle" />
-
-          <Bar dataKey={dataKey} name={name} fill={`url(#${gradId})`} radius={[6, 6, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function ProPieChart({
-  data,
-  dataKey = "value",
-  nameKey = "name",
-  donut = true,
-}: { data: { name: string; value: number }[]; dataKey?: string; nameKey?: string; donut?: boolean; }) {
-  const colors = seriesOrder;
-
-  return (
-    <div className="h-72">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart margin={{ top: 12, right: 24, bottom: 8, left: 8 }}>
-          <Tooltip content={<CardTooltip />} />
-          <Legend verticalAlign="top" height={24} wrapperStyle={{ color: 'white', fontSize: 12 }} iconType="circle" />
-          <Pie
-            data={data}
-            dataKey={dataKey}
-            nameKey={nameKey}
-            outerRadius={100}
-            innerRadius={donut ? 55 : 0}
-            paddingAngle={2}
-            stroke={palette.bg}
-            strokeOpacity={0.6}
-            label={({ name, value }: any) => `${name} (${value})`}
-          >
-            {data.map((_, i) => (
-              <Cell key={i} fill={colors[i % colors.length]} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-*/
 // -----------------------------
 // Card primitives
 // -----------------------------
@@ -359,12 +238,12 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
               <Stat label="Rows / Day" value={(k as any).rows_per_day ?? '-'} />
             </div>
 
-            {k?.time?.date_column ? (
-              <p className="mt-3 text-xs text-gray-300">
-                <span className="text-gray-400">Date Window:</span> {k.time.min_date} → {k.time.max_date}
-                {typeof k.time.days_covered === 'number' ? ` (${k.time.days_covered} days)` : ''}
-              </p>
-            ) : null}
+       {k?.time?.date_column ? (
+  <p className="mt-3 text-xs text-gray-300">
+    <span className="text-gray-400">Date Window:</span> {k.time.min_date?.split('T')[0] || '-'} → {k.time.max_date?.split('T')[0] || '-'}
+    {typeof k.time.days_covered === 'number' ? ` (${k.time.days_covered} days)` : ''}
+  </p>
+) : null}
 
             {topVariance?.length ? (
               <p className="mt-2 text-xs text-gray-300">
@@ -374,20 +253,17 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
           </Card>
         </div>
 
-        {/* Charts */}
-        {/*(data as any).charts && (
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            <Card title="Trend">
-              <ProLineChart data={(data as any).charts.line} name="Trend" />
-            </Card>
-            <Card title="Top Categories">
-              <ProBarChart data={(data as any).charts.bar} name="Value" />
-            </Card>
-            <Card title="Composition">
-              <ProPieChart data={(data as any).charts.pie} />
-            </Card>
-          </div>
-        )*/}
+        {/* AI-Powered Visualizations */}
+       {data.charts && Object.keys(data.charts).length > 0 && (
+  <     div className="mt-6">
+    <Card title="AI-Powered Visualizations" className="bg-gradient-to-br from-purple-500/5 to-blue-500/5 border-white/10">
+         <AICharts
+        charts={data.charts} 
+        metadata={data.visualizations_metadata}
+      />
+    </Card>
+  </div>
+)}
 
         {/* Enhanced AI Insights */}
         <div className="mt-8">
@@ -424,7 +300,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
             <div className="grid gap-6 md:grid-cols-2 mb-6">
               {/* Key Trends */}
               {ai?.key_trends?.length ? (
-                <div className="bg-gradient-to-br from-cyan-500/5 to-transparent rounded-xl p-4 border border-cyan-500/20">
+                <div className="bg-gradient-to-br from-cyan-500/5 to-transparent rounded-xl  text-justify p-4 border border-cyan-500/20">
                   <InsightItem
                     icon={<TrendingUp className="h-4 w-4 text-cyan-400" />}
                     title="Key Trends & Patterns"
@@ -437,7 +313,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
 
               {/* Business Implications */}
               {ai?.business_implications?.length ? (
-                <div className="bg-gradient-to-br from-purple-500/5 to-transparent rounded-xl p-4 border border-purple-500/20">
+                <div className="bg-gradient-to-br from-purple-500/5 to-transparent rounded-xl text-justify p-4 border border-purple-500/20">
                   <InsightItem
                     icon={<Target className="h-4 w-4 text-purple-400" />}
                     title="Business Implications"
@@ -460,7 +336,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
                 <div className="grid gap-4 mb-6">
                   {/* Short-term Recommendations */}
                   {ai.recommendations?.short_term?.length ? (
-                    <div className="bg-gradient-to-r from-blue-500/10 to-transparent rounded-xl p-4 border-l-4 border-blue-400">
+                    <div className="bg-gradient-to-r from-blue-500/10 to-transparent rounded-xl text-justify p-4 border-l-4 border-blue-400">
                       <InsightItem
                         icon={<Rocket className="h-4 w-4 text-blue-400" />}
                         title="Short-term Actions (0-3 months)"
@@ -473,7 +349,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
 
                   {/* Long-term Recommendations */}
                   {ai.recommendations?.long_term?.length ? (
-                    <div className="bg-gradient-to-r from-violet-500/10 to-transparent rounded-xl p-4 border-l-4 border-violet-400">
+                    <div className="bg-gradient-to-r from-violet-500/10 to-transparent rounded-xl text-justify p-4 border-l-4 border-violet-400">
                       <InsightItem
                         icon={<BarChart3 className="h-4 w-4 text-violet-400" />}
                         title="Long-term Strategies (3-12 months)"
@@ -491,7 +367,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
             <div className="grid gap-6 md:grid-cols-2 mb-6">
               {/* Quick Wins */}
               {ai?.action_items_quick_wins?.length ? (
-                <div className="bg-gradient-to-br from-emerald-500/5 to-transparent rounded-xl p-4 border border-emerald-500/20">
+                <div className="bg-gradient-to-br from-emerald-500/5 to-transparent rounded-xl text-justify p-4 border border-emerald-500/20">
                   <InsightItem
                     icon={<Rocket className="h-4 w-4 text-emerald-400" />}
                     title="Immediate Quick Wins"
@@ -504,7 +380,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
 
               {/* Risk Alerts */}
               {ai?.risk_alerts?.length ? (
-                <div className="bg-gradient-to-br from-rose-500/5 to-transparent rounded-xl p-4 border border-rose-500/20">
+                <div className="bg-gradient-to-br from-rose-500/5 to-transparent rounded-xl text-justify p-4 border border-rose-500/20">
                   <InsightItem
                     icon={<AlertTriangle className="h-4 w-4 text-rose-400" />}
                     title="Risk Alerts & Considerations"
@@ -520,7 +396,7 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
             <div className="grid gap-6 md:grid-cols-2">
               {/* Predictive Insights */}
               {ai?.predictive_insights?.length ? (
-                <div className="bg-gradient-to-br from-amber-500/5 to-transparent rounded-xl p-4 border border-amber-500/20">
+                <div className="bg-gradient-to-br from-amber-500/5 to-transparent rounded-xl text-justify p-4 border border-amber-500/20">
                   <InsightItem
                     icon={<TrendingUp className="h-4 w-4 text-amber-400" />}
                     title="Predictive Insights"

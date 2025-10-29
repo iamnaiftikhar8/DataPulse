@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Grid3X3, Mail, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
@@ -19,12 +19,13 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     if (!agree) return setError("Please accept the Terms and Privacy Policy.");
     if (password !== confirm) return setError("Passwords do not match.");
 
     try {
-      const res = await fetch("https://test-six-fawn-47.vercel.app/api/auth/signup", {
+const res = await fetch(`${API_BASE}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // IMPORTANT: sets dp_session_id cookie after signup
@@ -46,10 +47,9 @@ export default function SignupPage() {
   }
 
   // ADD THIS FUNCTION - Google OAuth handler
-  const handleGoogleSignup = async () => {
-    // Direct redirect to your backend Google endpoint
-    window.location.href = "https://test-six-fawn-47.vercel.app/api/auth/google";
-  };
+ const handleGoogleSignup = async () => {
+  window.location.href = `${API_BASE}/api/auth/google`;
+};
 
   return (
     <main className="relative min-h-screen w-full bg-black text-gray-200">

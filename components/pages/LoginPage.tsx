@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Github, Grid3X3, Mail, Lock } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const LOGIN_URL = "/api/auth/login"; // with rewrites → same-origin proxy to FastAPI
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,9 +15,7 @@ export default function LoginPage() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/";
 
-  // ADD THIS: Handle Google OAuth errors from callback
   useEffect(() => {
     const error = searchParams.get('error');
     if (error) {
@@ -45,40 +43,53 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const res = await fetch(LOGIN_URL, {
+      console.log("Attempting login with:", { email }); // Debug log
+
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // If you're NOT using rewrites (cross-origin), uncomment:
-        credentials: "include",
-        body: JSON.stringify({ email, password, remember }),
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Important for cookies
+        body: JSON.stringify({ 
+          email: email.trim(), 
+          password,
+          remember 
+        }),
       });
 
+      console.log("Login response status:", res.status); // Debug log
+
       if (!res.ok) {
-        // prefer detail, fall back to error or statusText
-        let msg = "Login failed";
+        let errorData;
         try {
-          const data = await res.json();
-          msg = (data?.detail || data?.error || res.statusText || msg) as string;
-        } catch { /* ignore parse errors */ }
-        setError(msg);
+          errorData = await res.json();
+          console.log("Error response:", errorData); // Debug log
+        } catch (parseError) {
+          console.log("Could not parse error response");
+        }
+        
+        setError(errorData?.detail || errorData?.error || `Login failed (${res.status})`);
         setLoading(false);
         return;
       }
 
-      // success → go to next/dashboard
- router.push('/analyze'); // Instead of '/'
+      // Login successful
+      const userData = await res.json();
+      console.log("Login successful:", userData); // Debug log
+      
+      // Redirect to analyze page
+      router.push('/analyze');
+      
     } catch (err) {
-      console.error(err);
-      setError("Network error while logging in.");
+      console.error("Login error:", err);
+      setError("Network error while logging in. Check if backend is running.");
       setLoading(false);
     }
   }
 
-  // ADD THIS: Google OAuth handler
   const handleGoogleLogin = async () => {
-    
-    // Direct redirect to your backend Google endpoint
-    window.location.href = "https://test-six-fawn-47.vercel.app/api/auth/google";
+    window.location.href = `${API_BASE}/api/auth/google`;
   };
 
   return (
@@ -171,18 +182,22 @@ export default function LoginPage() {
               <div className="relative mx-auto w-fit bg-black px-3 text-xs text-gray-400">Or continue with</div>
             </div>
 
-            {/* Social buttons - UPDATED */}
-          <div className="flex justify-center">
-  <button 
-    type="button" 
-    onClick={handleGoogleLogin}
-    className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
-  >
-    <GoogleIcon className="h-4 w-4" /> Google
-  </button>
-</div>
+            {/* Google button */}
+            <div className="flex justify-center">
+              <button 
+                type="button" 
+                onClick={handleGoogleLogin}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
+              >
+                <GoogleIcon className="h-4 w-4" /> Google
+              </button>
+            </div>
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && (
+              <div className="rounded-lg bg-red-500/10 p-3 border border-red-500/20">
+                <p className="text-sm text-red-400 text-center">{error}</p>
+              </div>
+            )}
           </form>
 
           <p className="mt-6 text-center text-xs text-gray-500">
@@ -192,35 +207,10 @@ export default function LoginPage() {
           </p>
         </div>
       </section>
-
-      {/* Autofill styling */}
-      <style jsx global>{`
-        html, body { color-scheme: dark; }
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus,
-        textarea:-webkit-autofill,
-        select:-webkit-autofill {
-          -webkit-text-fill-color: #e5e7eb;
-          caret-color: #e5e7eb;
-          -webkit-box-shadow: 0 0 0px 1000px rgba(0,0,0,.4) inset !important;
-          box-shadow: 0 0 0px 1000px rgba(0,0,0,.4) inset !important;
-          border: 1px solid rgba(255,255,255,.1) !important;
-        }
-        input:-moz-autofill,
-        textarea:-moz-autofill,
-        select:-moz-autofill {
-          box-shadow: 0 0 0px 1000px rgba(0,0,0,.4) inset !important;
-          -moz-text-fill-color: #e5e7eb;
-          caret-color: #e5e7eb;
-          border: 1px solid rgba(255,255,255,.1) !important;
-        }
-      `}</style>
     </main>
   );
 }
 
-// ADD THIS: Google Icon component
 function GoogleIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 48 48" className={className} aria-hidden>

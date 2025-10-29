@@ -32,7 +32,7 @@ export default function PricingPage() {
           name: 'Starter',
           monthlyPrice: 0,
           cta: { label: 'Get started', href: '#' },
-          features: ['500 data points', 'Basic visualizations', 'Community support'],
+          features: ['1 Report per day', 'Basic visualizations', 'Community support'],
         },
         {
           key: 'pro',
@@ -42,6 +42,7 @@ export default function PricingPage() {
           badge: 'Most popular',
           cta: { label: 'Upgrade', href: '#' },
           features: [
+
             'Unlimited data points',
             'Advanced visualizations',
             'Priority support',
