@@ -519,9 +519,13 @@ function exportPdfTextOnly() {
       <div className="mx-auto max-w-6xl px-6 py-10">
         {/* Header */}
         <header className="mb-8 flex items-end justify-between">
+          <div className="pt-8"> {/* Add this line */}
+
           <div>
+            
             <h1 className="text-3xl font-extrabold tracking-tight text-white">Analytics</h1>
             <p className="mt-1 text-sm text-gray-400">Upload data • analyze • AI summary • view results</p>
+          </div>
           </div>
           <button
             type="button"

@@ -185,9 +185,12 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
       <div className="relative z-10 w-[min(1100px,92vw)] max-h-[92vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0C0D10] p-6 shadow-xl">
         {/* Header */}
         <div className="pt-4 mb-6 flex items-center justify-between">
+          <div className="pt-8"> {/* Add this line */}
+
           <div>
             <h2 className="text-2xl font-extrabold text-white">Analysis Results</h2>
             <p className="text-xs text-gray-400">Profiling • KPIs • Charts • AI Insights</p>
+          </div>
           </div>
           <div className="flex gap-2">
             <button
