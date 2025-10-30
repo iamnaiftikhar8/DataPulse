@@ -58,7 +58,7 @@ export default function AnalyzePage() {
 
   const checkAuthStatus = async () => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
       const response = await fetch(`${API_BASE}/api/auth/me`, {
         method: 'GET',
         credentials: 'include',
@@ -82,7 +82,7 @@ export default function AnalyzePage() {
 
   const fetchUsageStats = async () => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
       console.log('🔍 Fetching usage stats...');
       
       const response = await fetch(`${API_BASE}/api/usage/stats`, {
@@ -122,7 +122,7 @@ export default function AnalyzePage() {
 
   const handleLogout = async () => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
       await fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
@@ -202,7 +202,7 @@ export default function AnalyzePage() {
       formData.append('file', selected);
 
       const idem = await fileSha256Hex(selected);
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
       
       const r1 = await fetch(`${API_BASE}/api/analyze`, {
         method: 'POST',

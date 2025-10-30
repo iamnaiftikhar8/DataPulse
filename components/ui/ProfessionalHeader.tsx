@@ -34,7 +34,7 @@ export default function ProfessionalHeader() {
   const checkAuthStatus = async () => {
     try {
       setAuthLoading(true);
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
       const response = await fetch(`${API_BASE}/api/auth/me`, {
         method: 'GET',
         credentials: 'include',
@@ -75,7 +75,7 @@ export default function ProfessionalHeader() {
     setLoading(true);
     
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
       
       const response = await fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
