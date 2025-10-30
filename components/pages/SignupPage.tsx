@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Grid3X3, Mail, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link"; // Add this import
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
@@ -21,11 +22,19 @@ export default function SignupPage() {
     setError(null);
     setLoading(true);
 
-    if (!agree) return setError("Please accept the Terms and Privacy Policy.");
-    if (password !== confirm) return setError("Passwords do not match.");
+    if (!agree) {
+      setError("Please accept the Terms and Privacy Policy.");
+      setLoading(false);
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      setLoading(false);
+      return;
+    }
 
     try {
-const res = await fetch(`${API_BASE}/api/auth/signup`, {
+      const res = await fetch(`${API_BASE}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // IMPORTANT: sets dp_session_id cookie after signup
@@ -35,21 +44,23 @@ const res = await fetch(`${API_BASE}/api/auth/signup`, {
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         setError(err.error || "Signup failed");
+        setLoading(false);
         return;
       }
 
       // success → go to homepage 
-    window.location.href = "/";
+      window.location.href = "/";
     } catch (err) {
       console.error(err);
       setError("Network error while signing up.");
+      setLoading(false);
     }
   }
 
-  // ADD THIS FUNCTION - Google OAuth handler
- const handleGoogleSignup = async () => {
-  window.location.href = `${API_BASE}/api/auth/google`;
-};
+  // Google OAuth handler
+  const handleGoogleSignup = async () => {
+    window.location.href = `${API_BASE}/api/auth/google`;
+  };
 
   return (
     <main className="relative min-h-screen w-full bg-black text-gray-200">
@@ -61,9 +72,9 @@ const res = await fetch(`${API_BASE}/api/auth/signup`, {
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500 font-bold text-black">D</span>
               <span className="text-base font-semibold text-white">DataPulse</span>
             </div>
-            <a href="/login" className="text-sm text-gray-300 hover:text-white">
+            <Link href="/login" className="text-sm text-gray-300 hover:text-white">
               Already have an account? <span className="text-cyan-400">Log in</span>
-            </a>
+            </Link>
           </div>
 
           <div className="text-center">
@@ -112,7 +123,7 @@ const res = await fetch(`${API_BASE}/api/auth/signup`, {
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="•••••••"
+                  placeholder="•••••••• "
                   className="w-full rounded-xl border border-white/10 bg-black/40 pl-10 pr-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 placeholder:text-gray-500"
                   minLength={8}
                   required
@@ -145,8 +156,15 @@ const res = await fetch(`${API_BASE}/api/auth/signup`, {
                 className="h-4 w-4 rounded border-white/10 bg-black/40 text-cyan-500 focus:ring-cyan-400/30"
               />
               <span className="text-gray-300">
-                I agree to the <a href="#" className="text-cyan-400 hover:text-cyan-300">Terms</a> and{" "}
-                <a href="#" className="text-cyan-400 hover:text-cyan-300">Privacy Policy</a>.
+                I agree to the{" "}
+                <Link href="/terms" className="text-cyan-400 hover:text-cyan-300 underline">
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="text-cyan-400 hover:text-cyan-300 underline">
+                  Privacy Policy
+                </Link>
+                .
               </span>
             </label>
 
@@ -166,19 +184,26 @@ const res = await fetch(`${API_BASE}/api/auth/signup`, {
             </div>
 
             <div className="flex justify-center">
-  <button 
-    type="button" 
-    onClick={handleGoogleSignup}
-    className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
-  >
-    <GoogleIcon className="h-4 w-4" /> Google
-  </button>
-</div>
+              <button 
+                type="button" 
+                onClick={handleGoogleSignup}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
+              >
+                <GoogleIcon className="h-4 w-4" /> Google
+              </button>
+            </div>
           </form>
 
           <p className="mt-6 text-center text-xs text-gray-500">
-            By continuing you agree to our <a href="#" className="text-gray-300 underline decoration-white/20 hover:text-white">Terms</a> and{" "}
-            <a href="#" className="text-gray-300 underline decoration-white/20 hover:text-white">Privacy Policy</a>.
+            By continuing you agree to our{" "}
+            <Link href="/terms" className="text-gray-300 underline decoration-white/20 hover:text-white">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="text-gray-300 underline decoration-white/20 hover:text-white">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </div>
       </section>

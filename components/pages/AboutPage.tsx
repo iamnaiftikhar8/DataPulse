@@ -95,7 +95,7 @@ export default function AboutPage() {
       <section className="mx-auto max-w-6xl gap-6 px-4 py-14 sm:grid sm:grid-cols-2 sm:px-6 lg:px-8">
         <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-7 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.6)]">
           <h2 className="text-lg font-semibold text-white">Our Story</h2>
-          <p className="mt-3 text-sm leading-6 text-gray-300">
+          <p className="mt-3 text-sm text-justify leading-6 text-gray-300">
             Founded in 2024 by a small team of data enthusiasts, DataPulse set out to
             remove the friction between data and decisions. Today, we help teams of all sizes
             turn raw data into clear, actionable insight—fast, secure, and delightful to use.
@@ -103,7 +103,7 @@ export default function AboutPage() {
         </article>
         <article className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-7 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.6)] sm:mt-0">
           <h2 className="text-lg font-semibold text-white">Our Mission</h2>
-          <p className="mt-3 text-sm leading-6 text-gray-300">
+          <p className="mt-3 text-sm text-justify leading-6 text-gray-300">
             We exist to empower every team to make smarter decisions. By combining AI-assisted
             analysis, automation, and intuitive visualization, we make sophisticated analytics
             accessible—without sacrificing security or flexibility.

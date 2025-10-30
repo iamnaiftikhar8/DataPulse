@@ -43,7 +43,7 @@ export default function LandingPage() {
       icon: <Gauge className="h-5 w-5" aria-hidden />,
       title: "Smart KPIs",
       kicker: "Totals - Rows & Columns, Outliers",
-      points: ["Totals", "Outliers", "Duplicates"],
+      points: ["Totals - R/C", "Outliers", "Duplicates","Missing %","Rows/Day"],
     },
     {
       icon: (

@@ -209,37 +209,37 @@ export default function AnalysisResultModal({ open, onClose, data, onExportPdf }
         </div>
 
         {/* Top grid: Profiling & KPIs */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Profiling */}
-          <Card title="Profiling">
-            <div className="grid grid-cols-2 gap-3">
-              <Stat label="Rows" value={(p as any).rows ?? '-'} right={<Sparkline data={(data as any).charts?.line ?? []} />} />
-              <Stat label="Columns" value={(p as any).columns ?? '-'} />
-              <Stat label="Missing Values" value={(p as any).missing_total ?? 0} />
-              <Stat label="Numeric Columns" value={(p as any).numeric_columns?.length ?? 0} />
-            </div>
-            {(p as any).numeric_columns?.length ? (
-              <p className="mt-3 text-xs text-gray-300">
-                <span className="text-gray-400">Top Numeric Columns: </span>
-                {(p as any).numeric_columns.slice(0, 8).join(', ')}
-              </p>
-            ) : null}
-          </Card>
+<div className="grid gap-6 md:grid-cols-2">
+  {/* Profiling */}
+  <Card title="Profiling">
+    <div className="grid grid-cols-2 gap-3">
+      <Stat label="Rows" value={p.rows ?? '-'} />
+      <Stat label="Columns" value={p.columns ?? '-'} />
+      <Stat label="Missing Values" value={p.missing_total ?? 0} />
+      <Stat label="Numeric Columns" value={p.numeric_columns?.length ?? 0} />
+    </div>
+    {p.numeric_columns?.length ? (
+      <p className="mt-3 text-xs text-gray-300">
+        <span className="text-gray-400">Top Numeric Columns: </span>
+        {p.numeric_columns.slice(0, 8).join(', ')}
+      </p>
+    ) : null}
+  </Card>
 
-          {/* KPIs */}
-          <Card title="KPIs">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Stat label="Total Rows" value={(k as any).total_rows ?? (p as any).rows ?? '-'} />
-              <Stat label="Total Columns" value={(k as any).total_columns ?? (p as any).columns ?? '-'} />
-              <Stat
-                label="Missing %"
-                value={renderMissingPct((k as any).missing_pct)}
-                right={<Sparkline data={(data as any).charts?.line ?? []} />}
-              />
-              <Stat label="Duplicates" value={(k as any).duplicate_rows ?? 0} />
-              <Stat label="Outliers" value={(k as any).outliers_total ?? 0} />
-              <Stat label="Rows / Day" value={(k as any).rows_per_day ?? '-'} />
-            </div>
+  {/* KPIs */}
+  <Card title="KPIs">
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Stat label="Total Rows" value={k.total_rows ?? p.rows ?? '-'} />
+      <Stat label="Total Columns" value={k.total_columns ?? p.columns ?? '-'} />
+      <Stat
+        label="Missing %"
+        value={renderMissingPct(k.missing_pct)}
+      />
+      <Stat label="Duplicates" value={k.duplicate_rows ?? 0} />
+      <Stat label="Outliers" value={k.outliers_total ?? 0} />
+      <Stat label="Rows / Day" value={k.rows_per_day ?? '-'} />
+    </div>
+
 
        {k?.time?.date_column ? (
   <p className="mt-3 text-xs text-gray-300">
