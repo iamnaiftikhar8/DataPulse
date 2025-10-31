@@ -56,29 +56,55 @@ export default function AnalyzePage() {
     }
   }, [userInfo]);
 
-  const checkAuthStatus = async () => {
-    try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
-      const response = await fetch(`${API_BASE}/api/auth/me`, {
-        method: 'GET',
-        credentials: 'include',
-      });
 
-      if (response.ok) {
-        const userData = await response.json();
-        setUserInfo(userData);
-        console.log('✅ User authenticated:', userData);
-      } else {
-        console.log('❌ User not authenticated');
-        setUserInfo(null);
-        // Redirect to login if not authenticated
-        window.location.href = '/login';
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setUserInfo(null);
+  useEffect(() => {
+  // Check if we have a session cookie but userInfo is null (Google OAuth case)
+  const checkSessionCookie = () => {
+    if (!userInfo && document.cookie.includes('dp_session_id')) {
+      console.log('🔄 Session cookie found but userInfo null, retrying auth check...');
+      // Retry auth check after a delay
+      setTimeout(() => {
+        checkAuthStatus();
+      }, 1000);
     }
   };
+
+  // Check after component mounts
+  checkSessionCookie();
+}, [userInfo]);
+
+
+const checkAuthStatus = async () => {
+  try {
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
+    const response = await fetch(`${API_BASE}/api/auth/me`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const userData = await response.json();
+      setUserInfo(userData);
+      console.log('✅ User authenticated:', userData);
+    } else {
+      console.log('❌ User not authenticated');
+      setUserInfo(null);
+      
+      // Wait 2 seconds before redirecting to give Google OAuth time to set cookies
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2000);
+    }
+  } catch (error) {
+    console.error('Auth check failed:', error);
+    setUserInfo(null);
+    
+    // Wait 2 seconds before redirecting on network errors
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 2000);
+  }
+};
 
   const fetchUsageStats = async () => {
     try {
@@ -151,21 +177,42 @@ export default function AnalyzePage() {
     if (inputRef.current) inputRef.current.value = '';
   }
 
-  function onBrowseClick() {
-    // Check authentication first
-    if (!userInfo?.authenticated) {
-      window.location.href = '/login';
-      return;
-    }
-
-    // Check usage limits
-    if (usageStats && !usageStats.can_generate) {
-      setShowUsageModal(true);
-      return;
-    }
-
-    inputRef.current?.click();
+// In AnalyzePage.tsx - ADD this function
+const retryAuthCheck = async () => {
+  console.log('🔄 Retrying authentication check...');
+  await checkAuthStatus();
+  
+  // If still not authenticated after retry, show message
+  if (!userInfo) {
+    console.log('❌ Still not authenticated after retry');
   }
+};
+
+function onBrowseClick() {
+  // Check authentication first
+  if (!userInfo?.authenticated) {
+    console.log('User not authenticated, checking if this is a Google OAuth user...');
+    
+    // Check if we have a session cookie (Google OAuth case)
+    if (document.cookie.includes('dp_session_id')) {
+      console.log('🔄 Session cookie found, retrying auth check...');
+      retryAuthCheck();
+      return;
+    }
+    
+    // No session cookie, redirect to login
+    window.location.href = '/login';
+    return;
+  }
+
+  // Check usage limits
+  if (usageStats && !usageStats.can_generate) {
+    setShowUsageModal(true);
+    return;
+  }
+
+  inputRef.current?.click();
+}
 
   // Stable idempotency key from file bytes
   async function fileSha256Hex(f: File) {
