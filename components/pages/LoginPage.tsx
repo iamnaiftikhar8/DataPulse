@@ -200,11 +200,7 @@ export default function LoginPage() {
             )}
           </form>
 
-          <p className="mt-6 text-center text-xs text-gray-500">
-            By continuing you agree to our{" "}
-            <a href="#" className="text-gray-300 underline decoration-white/20 hover:text-white">Terms</a> and{" "}
-            <a href="#" className="text-gray-300 underline decoration-white/20 hover:text-white">Privacy Policy</a>.
-          </p>
+      
         </div>
       </section>
     </main>

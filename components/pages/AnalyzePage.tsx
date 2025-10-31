@@ -57,52 +57,92 @@ export default function AnalyzePage() {
   }, [userInfo]);
 
 
-  useEffect(() => {
-  // Check if we have a session cookie but userInfo is null (Google OAuth case)
-  const checkSessionCookie = () => {
-    if (!userInfo && document.cookie.includes('dp_session_id')) {
-      console.log('🔄 Session cookie found but userInfo null, retrying auth check...');
-      // Retry auth check after a delay
+ // Add this useEffect - REPLACE your existing one
+useEffect(() => {
+  // Check if we just came from Google OAuth
+  const checkGoogleOAuthRedirect = () => {
+    const hasSessionCookie = document.cookie.includes('dp_session_id');
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasGoogleParams = urlParams.has('code') || urlParams.has('state');
+    
+    if (hasSessionCookie || hasGoogleParams) {
+      console.log('🔄 Detected potential Google OAuth redirect');
+      
+      // Clear any Google OAuth parameters from URL
+      if (hasGoogleParams) {
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+        console.log('🔄 Cleared OAuth parameters from URL');
+      }
+      
+      // Wait longer for Google OAuth sessions to initialize
+      console.log('🔄 Waiting 2 seconds for session initialization...');
       setTimeout(() => {
         checkAuthStatus();
-      }, 1000);
+      }, 2000);
+    } else {
+      // Normal page load, check auth immediately
+      console.log('🔍 Normal page load, checking auth immediately');
+      checkAuthStatus();
     }
   };
 
-  // Check after component mounts
-  checkSessionCookie();
-}, [userInfo]);
-
+  checkGoogleOAuthRedirect();
+}, []);
 
 const checkAuthStatus = async () => {
   try {
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
+    
+    console.log('🔍 Checking authentication status...');
+    
     const response = await fetch(`${API_BASE}/api/auth/me`, {
       method: 'GET',
       credentials: 'include',
     });
 
+    console.log('🔍 Auth check response status:', response.status);
+    
     if (response.ok) {
       const userData = await response.json();
       setUserInfo(userData);
       console.log('✅ User authenticated:', userData);
     } else {
-      console.log('❌ User not authenticated');
+      console.log('❌ Auth check failed, status:', response.status);
       setUserInfo(null);
       
-      // Wait 2 seconds before redirecting to give Google OAuth time to set cookies
+      // 🚨 CRITICAL: Check if we have a session cookie (Google OAuth case)
+      if (document.cookie.includes('dp_session_id')) {
+        console.log('🔄 Session cookie found but auth failed, retrying in 3 seconds...');
+        
+        // Retry multiple times for Google OAuth users
+        setTimeout(() => {
+          console.log('🔄 Retry 1: Checking auth again...');
+          checkAuthStatus();
+        }, 3000);
+      } else {
+        // No session cookie, redirect to login after delay
+        console.log('🚫 No session cookie found, redirecting to login in 3 seconds');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 3000);
+      }
+    }
+  } catch (error) {
+    console.error('💥 Auth check failed:', error);
+    setUserInfo(null);
+    
+    // Retry on network errors for Google OAuth users
+    if (document.cookie.includes('dp_session_id')) {
+      console.log('🔄 Network error but session cookie exists, retrying...');
+      setTimeout(() => {
+        checkAuthStatus();
+      }, 2000);
+    } else {
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
     }
-  } catch (error) {
-    console.error('Auth check failed:', error);
-    setUserInfo(null);
-    
-    // Wait 2 seconds before redirecting on network errors
-    setTimeout(() => {
-      window.location.href = '/login';
-    }, 2000);
   }
 };
 
@@ -177,16 +217,23 @@ const checkAuthStatus = async () => {
     if (inputRef.current) inputRef.current.value = '';
   }
 
-// In AnalyzePage.tsx - ADD this function
 const retryAuthCheck = async () => {
   console.log('🔄 Retrying authentication check...');
+  
+  // Show loading state to user
+  setUserInfo(null);
+  
   await checkAuthStatus();
   
-  // If still not authenticated after retry, show message
-  if (!userInfo) {
-    console.log('❌ Still not authenticated after retry');
-  }
+  // If still not authenticated after retry, show message but don't redirect immediately
+  setTimeout(() => {
+    if (!userInfo) {
+      console.log('❌ Still not authenticated after retry');
+      // Don't redirect here - let the main checkAuthStatus handle it
+    }
+  }, 1000);
 };
+
 
 function onBrowseClick() {
   // Check authentication first
