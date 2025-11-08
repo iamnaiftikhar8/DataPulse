@@ -241,48 +241,6 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* COMPARISON (unchanged) */}
-      <section className="mx-auto max-w-6xl px-6 pb-20">
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40 ring-1 ring-white/5">
-          <div className="grid grid-cols-4 border-b border-white/10 bg-white/[0.02] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
-            <div>Feature</div>
-            <div className="text-center">Starter</div>
-            <div className="text-center">Pro</div>
-            <div className="text-center">Enterprise</div>
-          </div>
-
-          {[
-            { label: 'Data points', vals: ['500', 'Unlimited', 'Custom'] },
-            { label: 'Visualizations', vals: ['Basic', 'Advanced', 'Advanced + Custom'] },
-            { label: 'Support', vals: ['Community', 'Priority', 'Dedicated'] },
-            { label: 'API Access', vals: ['—', 'Yes', 'Yes'] },
-            { label: 'Onboarding', vals: ['—', '—', 'Assistance'] },
-            { label: 'Integrations', vals: ['—', 'Standard', 'Custom'] },
-          ].map((row, idx) => (
-            <div
-              key={row.label}
-              className={`grid grid-cols-4 items-center px-4 py-3 text-sm ${
-                idx % 2 ? 'bg-white/[0.01]' : ''
-              }`}
-            >
-              <div className="py-1 text-gray-400">{row.label}</div>
-              {row.vals.map((v, i) => (
-                <div key={i} className="text-center text-gray-300">
-                  {v === 'Yes' ? (
-                    <span className="inline-flex items-center justify-center rounded-md bg-cyan-500/15 px-2 py-0.5 text-xs font-semibold text-cyan-300 ring-1 ring-inset ring-cyan-400/20">
-                      Yes
-                    </span>
-                  ) : v === '—' ? (
-                    <span className="text-gray-600">—</span>
-                  ) : (
-                    <span>{v}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
 
        {/* FOOTER */}
       <footer className="border-t border-white/10">

@@ -5,7 +5,7 @@ import { Grid3X3, Mail, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link"; // Add this import
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
@@ -63,14 +63,13 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="relative min-h-screen w-full bg-black text-gray-200">
+    <main className="relative min-h-screen w-full bg-gray-950 text-gray-200">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(70%_40%_at_50%_-10%,rgba(56,189,248,.18),transparent_60%)]" />
       <section className="mx-auto grid min-h-[calc(100vh-0px)] w-full max-w-6xl place-items-center px-6 py-12">
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/60 p-6 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.6)] ring-1 ring-white/10 backdrop-blur">
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500 font-bold text-black">D</span>
-              <span className="text-base font-semibold text-white">DataPulse</span>
+              <span className="inline-flex h-9 w-9 items-center justify-center  font-bold text-black">D</span>
             </div>
             <Link href="/login" className="text-sm text-gray-300 hover:text-white">
               Already have an account? <span className="text-cyan-400">Log in</span>
@@ -78,8 +77,8 @@ export default function SignupPage() {
           </div>
 
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white">Create your account</h1>
-            <p className="mt-1 text-sm text-gray-400">Start turning data into decisions.</p>
+            <h1 className="text-2xl font-bold text-white">Create your Account</h1>
+            <p className="mt-1 text-sm text-gray-400">Start turning data into decisions</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
@@ -92,7 +91,7 @@ export default function SignupPage() {
                   autoComplete="name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Full Name"
+                  placeholder="Enter your Full Name"
                   className="w-full rounded-xl border border-white/10 bg-black/40 pl-10 pr-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 placeholder:text-gray-500"
                 />
               </div>
@@ -107,7 +106,7 @@ export default function SignupPage() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ID@gmail.com"
+                  placeholder="Enter your email"
                   className="w-full rounded-xl border border-white/10 bg-black/40 pl-10 pr-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 placeholder:text-gray-500"
                   required
                 />

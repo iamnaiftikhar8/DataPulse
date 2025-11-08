@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Activity } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,6 +36,24 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
+  // Handle Google OAuth callback with instant updates
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session');
+    
+    if (sessionId) {
+      console.log("Google OAuth successful, session:", sessionId);
+      
+      localStorage.setItem('recent_login', JSON.stringify({
+        authenticated: true,
+        session_id: sessionId,
+      }));
+      
+      window.dispatchEvent(new Event('userLoggedIn'));
+      router.push('/analyze');
+    }
+  }, [router]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
@@ -43,14 +62,14 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      console.log("Attempting login with:", { email }); // Debug log
+      console.log("Attempting login with:", { email });
 
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
         },
-        credentials: "include", // Important for cookies
+        credentials: "include",
         body: JSON.stringify({ 
           email: email.trim(), 
           password,
@@ -58,13 +77,13 @@ export default function LoginPage() {
         }),
       });
 
-      console.log("Login response status:", res.status); // Debug log
+      console.log("Login response status:", res.status);
 
       if (!res.ok) {
         let errorData;
         try {
           errorData = await res.json();
-          console.log("Error response:", errorData); // Debug log
+          console.log("Error response:", errorData);
         } catch (parseError) {
           console.log("Could not parse error response");
         }
@@ -74,12 +93,21 @@ export default function LoginPage() {
         return;
       }
 
-      // Login successful
       const userData = await res.json();
-      console.log("Login successful:", userData); // Debug log
+      console.log("Login successful:", userData);
       
-      // Redirect to analyze page
-      router.push('/analyze');
+      localStorage.setItem('recent_login', JSON.stringify({
+        authenticated: true,
+        user_id: userData.user_id,
+        user_name: userData.user_name || userData.user_id?.split('@')[0],
+        session_id: userData.session_id
+      }));
+
+      window.dispatchEvent(new Event('userLoggedIn'));
+
+      setTimeout(() => {
+        router.push('/analyze');
+      }, 100);
       
     } catch (err) {
       console.error("Login error:", err);
@@ -89,120 +117,150 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
+    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
     window.location.href = `${API_BASE}/api/auth/google`;
   };
 
   return (
-    <main className="relative min-h-screen w-full bg-black text-gray-200">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(70%_40%_at_50%_-10%,rgba(56,189,248,.18),transparent_60%)]" />
+    <main className="min-h-screen w-full bg-gray-950 text-gray-200 flex items-center justify-center p-4">
+      {/* Enhanced background effects */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl"></div>
+      </div>
 
-      <section className="mx-auto grid min-h-[calc(100vh-0px)] w-full max-w-6xl place-items-center px-6 py-12">
+      <div className="w-full max-w-md">
+        {/* Enhanced Card */}
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/60 p-6 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.6)] ring-1 ring-white/10 backdrop-blur">
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500 font-bold text-black">D</span>
-              <span className="text-base font-semibold text-white">DataPulse</span>
-            </div>
-            <a href="/signup" className="text-sm text-gray-300 hover:text-white">
-              Need an account? <span className="text-cyan-400">Sign up</span>
-            </a>
-          </div>
-
-          {/* Title */}
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-            <p className="mt-1 text-sm text-gray-400">Sign in to continue to your dashboard.</p>
+           <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-white mb-2">Welcome to DataPulse</h1>
+            <p className="text-gray-400 text-sm">Sign in to continue to your dashboard</p>
           </div>
 
           {/* Form */}
-          <form onSubmit={onSubmit} className="mt-8 space-y-5">
-            {/* Email */}
+          <form onSubmit={onSubmit} className="space-y-6">
+            {/* Email Field */}
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-200">Email</label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <label htmlFor="email" className="text-sm font-medium text-gray-200">Email Address</label>
+              <div className="relative group">
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/20 to-cyan-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 z-10" />
                 <input
                   id="email"
                   type="email"
                   autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ID@gmail.com"
-                  className="w-full rounded-xl border border-white/10 bg-black/40 pl-10 pr-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 placeholder:text-gray-500"
+                  placeholder="Enter your email"
+                  className="relative w-full rounded-xl border border-white/10 bg-black/60 pl-10 pr-3 py-3 text-sm text-white outline-none transition-all focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 placeholder:text-gray-500 backdrop-blur"
                   required
                 />
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password Field */}
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium text-gray-200">Password</label>
-              <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <div className="relative group">
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/20 to-cyan-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 z-10" />
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-xl border border-white/10 bg-black/40 pl-10 pr-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 placeholder:text-gray-500"
+                  placeholder="Enter your password"
+                  className="relative w-full rounded-xl border border-white/10 bg-black/60 pl-10 pr-10 py-3 text-sm text-white outline-none transition-all focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 placeholder:text-gray-500 backdrop-blur"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors z-10"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
             {/* Options */}
             <div className="flex items-center justify-between text-sm">
-              <label className="inline-flex select-none items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="h-4 w-4 rounded border-white/10 bg-black/40 text-cyan-500 focus:ring-cyan-400/30"
-                />
+              <label className="inline-flex select-none items-center gap-2 cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-4 h-4 rounded border transition-all ${remember ? 'bg-cyan-500 border-cyan-500' : 'border-white/20 bg-black/40'}`}>
+                    {remember && (
+                      <svg className="w-3 h-3 text-black mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
                 <span className="text-gray-300">Remember me</span>
               </label>
-              <a href="/forgot-password" className="text-cyan-400 hover:text-cyan-300">Forgot password?</a>
+            
             </div>
 
-            {/* Submit */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-black shadow ring-1 ring-white/10 transition-colors hover:bg-cyan-400 disabled:opacity-60"
+              className="w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-black shadow-lg ring-1 ring-cyan-500/30 transition-all hover:bg-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              {loading ? "Logging in..." : "Log in"}
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
+                  Logging in...
+                </div>
+              ) : (
+                "Log in"
+              )}
             </button>
 
             {/* Divider */}
             <div className="relative py-2">
               <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-white/10" />
-              <div className="relative mx-auto w-fit bg-black px-3 text-xs text-gray-400">Or continue with</div>
+              <div className="relative mx-auto w-fit bg-black px-3 text-xs text-gray-400">OR</div>
             </div>
 
-            {/* Google button */}
+            {/* Google Button */}
             <div className="flex justify-center">
               <button 
                 type="button" 
                 onClick={handleGoogleLogin}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/5"
+                className="inline-flex items-center justify-center gap-3 rounded-xl bg-black/40 px-4 py-3 text-sm font-semibold text-gray-200 ring-1 ring-inset ring-white/10 transition-all hover:bg-white/5 hover:ring-white/20 w-full max-w-xs transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                <GoogleIcon className="h-4 w-4" /> Google
+                <GoogleIcon className="h-5 w-5" /> 
+                <span>Continue with Google</span>
               </button>
             </div>
 
+            {/* Error Message */}
             {error && (
-              <div className="rounded-lg bg-red-500/10 p-3 border border-red-500/20">
-                <p className="text-sm text-red-400 text-center">{error}</p>
+              <div className="rounded-xl bg-red-500/10 p-4 border border-red-500/20 backdrop-blur">
+                <p className="text-sm text-red-400 text-center font-medium">{error}</p>
               </div>
             )}
-          </form>
 
-      
+            {/* Sign Up Link */}
+            <div className="text-center pt-4 border-t border-white/10">
+              <p className="text-sm text-gray-400">
+                Need an account?{" "}
+                <a href="/signup" className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
+                  Sign up now
+                </a>
+              </p>
+            </div>
+          </form>
         </div>
-      </section>
+      </div>
     </main>
   );
 }

@@ -2,16 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
-import { Menu, X, LogOut, User, Crown, Loader, BarChart3, Zap, Shield, Star } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, X, LogOut, User, Crown, BarChart3, Zap, Shield, Star, FileText, Settings, ChevronDown, MailIcon } from 'lucide-react';
 
 export default function ProfessionalHeader() {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const nav = [
     { name: 'Home', href: '/', icon: BarChart3 },
@@ -19,6 +20,13 @@ export default function ProfessionalHeader() {
     { name: 'Features', href: '/features', icon: Star },
     { name: 'Pricing', href: '/pricing', icon: Crown },
     { name: 'About', href: '/about', icon: Shield },
+    { name: 'Contact', href: '/contact', icon: MailIcon }
+  ];
+
+  const profileMenuItems = [
+    { name: 'My Profile', href: '/profile', icon: User, description: 'View and edit your profile' },
+    { name: 'Analysis History', href: '/profile#reports', icon: FileText, description: 'View your past reports' },
+    { name: 'Account Settings', href: '/profile#settings', icon: Settings, description: 'Manage preferences' }
   ];
 
   // Handle scroll effect
@@ -30,75 +38,121 @@ export default function ProfessionalHeader() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Check if user is logged in
-  const checkAuthStatus = async () => {
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // ⚡ INSTANT AUTH CHECK - No loading states
+  const checkAuthStatusFast = async () => {
     try {
-      setAuthLoading(true);
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
+      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+      
+      const quickResponse = await fetch(`${API_BASE}/api/auth/quick-check`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      const quickData = await quickResponse.json();
+      
+      if (quickData.authenticated) {
+        setUserInfo({
+          authenticated: true,
+          user_id: quickData.user_id,
+          session_id: quickData.session_id,
+          user_name: quickData.user_id?.split('@')[0]
+        });
+        // Background update without waiting
+        fetchFullUserInfo(quickData.user_id);
+      } else {
+        setUserInfo(null);
+      }
+    } catch (error) {
+      console.error('Fast auth check failed:', error);
+      // Silent fallback - don't show errors to user
+    }
+  };
+
+  // Get full user info in background (silent)
+  const fetchFullUserInfo = async (userId: string) => {
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
       const response = await fetch(`${API_BASE}/api/auth/me`, {
         method: 'GET',
         credentials: 'include',
       });
 
       if (response.ok) {
-        const userData = await response.json();
-        setUserInfo(userData);
-      } else {
-        setUserInfo(null);
+        const fullUserData = await response.json();
+        setUserInfo(fullUserData);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
-      setUserInfo(null);
-    } finally {
-      setAuthLoading(false);
+      // Silent fail - user already has basic info
     }
   };
 
-  // Refresh auth status on mount and when pathname changes
+  // ⚡ IMMEDIATE auth check on mount
   useEffect(() => {
-    checkAuthStatus();
-  }, [pathname]);
-
-  // Listen for login events
-  useEffect(() => {
-    const handleLoginSuccess = () => {
-      checkAuthStatus();
-    };
-
-    window.addEventListener('userLoggedIn', handleLoginSuccess);
-    return () => {
-      window.removeEventListener('userLoggedIn', handleLoginSuccess);
-    };
+    checkAuthStatusFast();
   }, []);
 
+  // ⚡ INSTANT update on route changes
+  useEffect(() => {
+    if (pathname !== '/login' && pathname !== '/signup') {
+      checkAuthStatusFast();
+    }
+  }, [pathname]);
+
+  // ⚡ INSTANT LOGOUT - No loading, immediate redirect
   const handleLogout = async () => {
-    setLoading(true);
-    
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
+      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
       
-      const response = await fetch(`${API_BASE}/api/auth/logout`, {
+      // Immediate UI update and redirect
+      setUserInfo(null);
+      localStorage.removeItem('recent_login');
+      
+      // Trigger logout event for other components
+      window.dispatchEvent(new Event('userLoggedOut'));
+      
+      // 🔄 IMMEDIATE REDIRECT TO HOME PAGE
+      window.location.href = '/';
+      
+      // Background logout (non-blocking)
+      fetch(`${API_BASE}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
+      }).catch(error => {
+        console.error('Background logout failed:', error);
       });
-
-      if (response.ok) {
-        setUserInfo(null);
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = '/login';
-      } else {
-        console.error('Logout failed');
-        setLoading(false);
-      }
+      
     } catch (error) {
       console.error('Logout error:', error);
-      setLoading(false);
+      // Still redirect on error
+      window.location.href = '/';
     }
   };
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname?.startsWith(href);
+
+  // ⚡ INSTANT NAVIGATION - No delays
+  const handleProfileItemClick = (href: string) => {
+    setProfileDropdownOpen(false);
+    window.location.href = href;
+  };
+
+  const handleProfileButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setProfileDropdownOpen(!profileDropdownOpen);
+  };
 
   return (
     <header className={`sticky top-0 z-50 transition-all duration-300 ${
@@ -111,62 +165,38 @@ export default function ProfessionalHeader() {
 
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-       {/* Premium Enterprise Logo */}
-<Link
-  href="/"
-  className="group relative flex items-center gap-4 rounded-xl px-4 py-3 transition-all duration-500 hover:bg-gradient-to-r hover:from-white/5 hover:to-white/2"
-  aria-label="DataPulse Enterprise Home"
->
-  <div className="relative">
-    {/* Main logo container with sophisticated gradient */}
-    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-gray-900 via-black to-gray-900 shadow-2xl border border-gray-700/60">
-      {/* Inner shine effect */}
-      <div className="absolute inset-1 rounded-lg bg-gradient-to-br from-white/5 to-transparent" />
-      
-      {/* Icon with sophisticated styling */}
-      <div className="relative z-10">
-        <BarChart3 className="h-6 w-6 text-gray-200 drop-shadow-lg" />
-      </div>
-      
-      {/* Subtle corner accents */}
-      <div className="absolute top-0 left-0 h-2 w-2 border-t border-l border-cyan-400/40 rounded-tl" />
-      <div className="absolute top-0 right-0 h-2 w-2 border-t border-r border-blue-400/40 rounded-tr" />
-      <div className="absolute bottom-0 left-0 h-2 w-2 border-b border-l border-cyan-400/30 rounded-bl" />
-      <div className="absolute bottom-0 right-0 h-2 w-2 border-b border-r border-blue-400/30 rounded-br" />
-    </div>
-    
-    {/* Sophisticated glow effect on hover */}
-    <div className="absolute -inset-2 rounded-xl bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 blur-lg transition-all duration-700" />
-  </div>
-  
-  {/* Text container with premium typography */}
-  <div className="flex flex-col items-start space-y-1.5">
-    {/* Main brand name with animated gradient */}
-    <div className="flex items-baseline gap-2">
-      <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white via-cyan-400 to-white bg-clip-text text-transparent bg-[length:200%_200%] animate-gradient-x">
-        DataPulse
-      </span>
-      {/* Sophisticated dot separator */}
-      <div className="h-1 w-1 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 animate-pulse" />
-    </div>
-    
-    {/* Professional tagline */}
-    <div className="flex items-center gap-2">
-      <div className="h-px w-3 bg-gradient-to-r from-cyan-400/50 to-blue-400/50" />
-      <span className="text-xs font-medium text-gray-400 tracking-wider uppercase">
-        AI Analytics Platform
-      </span>
-      <div className="h-px w-3 bg-gradient-to-r from-blue-400/50 to-cyan-400/50" />
-    </div>
-  </div>
-  
-  {/* Elegant hover underline */}
-  <div className="absolute -bottom-1 left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-</Link>
+          {/* Logo Section */}
+          <div className="flex items-center">
+            <Link
+              href="/"
+              className="group relative flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-500 hover:bg-gradient-to-r hover:from-white/5 hover:to-white/2"
+              aria-label="DataPulse Enterprise Home"
+            >
+              <div className="relative">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-gray-900 via-black to-gray-900 shadow-2xl border border-gray-700/60">
+                  <div className="absolute inset-1 rounded-lg bg-gradient-to-br from-white/5 to-transparent" />
+                  <div className="relative z-10">
+                    <BarChart3 className="h-5 w-5 text-gray-200 drop-shadow-lg" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col items-start">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-cyan-400 to-white bg-clip-text text-transparent">
+                    DataPulse
+                  </span>
+                </div>
+                <span className="text-xs font-medium text-gray-400 tracking-wider uppercase hidden sm:block">
+                  AI Analytics
+                </span>
+              </div>
+            </Link>
+          </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:block">
-            <div className="ml-8 flex items-center gap-1">
+          {/* Desktop Navigation - Centered */}
+          <div className="hidden lg:flex flex-1 justify-center">
+            <div className="flex items-center gap-1">
               {nav.map((item) => {
                 const active = isActive(item.href);
                 const Icon = item.icon;
@@ -175,7 +205,7 @@ export default function ProfessionalHeader() {
                     key={item.name}
                     href={item.href}
                     className={[
-                      'group relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200',
+                      'group relative flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 mx-1',
                       active
                         ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-400 shadow-lg shadow-cyan-500/10 border border-cyan-500/20'
                         : 'text-gray-400 hover:text-white hover:bg-white/5',
@@ -186,7 +216,6 @@ export default function ProfessionalHeader() {
                       active ? 'text-cyan-400' : 'text-gray-500 group-hover:text-cyan-400'
                     }`} />
                     {item.name}
-                    {/* Active indicator */}
                     {active && (
                       <div className="absolute -bottom-1 left-1/2 h-0.5 w-6 -translate-x-1/2 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full" />
                     )}
@@ -196,156 +225,216 @@ export default function ProfessionalHeader() {
             </div>
           </div>
 
-          {/* Desktop Auth Section */}
-          <div className="hidden items-center gap-3 lg:flex">
-            {authLoading ? (
-              <div className="flex items-center gap-2 rounded-xl bg-white/5 px-4 py-2.5 text-sm text-gray-400 border border-white/10">
-                <Loader className="h-4 w-4 animate-spin" />
-                <span>Loading...</span>
-              </div>
-            ) : userInfo ? (
+          {/* Desktop Auth Section - Right Aligned */}
+          <div className="flex items-center gap-3">
+            {userInfo ? (
               <div className="flex items-center gap-3">
-                {/* User Profile */}
-                <div className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-2.5 border border-white/10 backdrop-blur-sm">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
-                    <User className="h-4 w-4 text-cyan-400" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-white">
-                      {userInfo.user_name || userInfo.user_id?.split('@')[0]}
-                    </span>
-                   
-                  </div>
-                  {userInfo.is_premium && (
-                    <Crown className="h-4 w-4 text-amber-400" />
+                {/* Profile Dropdown */}
+                <div className="hidden lg:block relative" ref={dropdownRef}>
+                  <button
+                    onClick={handleProfileButtonClick}
+                    className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-2 border border-white/10 transition-all duration-200 hover:bg-white/10 hover:border-white/20 group"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 group-hover:from-cyan-500/30 group-hover:to-blue-500/30">
+                      <User className="h-4 w-4 text-cyan-400" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-semibold text-white">
+                        {userInfo.user_name}
+                      </span>
+                     
+                    </div>
+                    <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
+                      profileDropdownOpen ? 'rotate-180' : ''
+                    }`} />
+                    {userInfo.is_premium && (
+                      <Crown className="h-4 w-4 text-amber-400" />
+                    )}
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {profileDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-white/10 bg-black/95 backdrop-blur-xl shadow-2xl shadow-cyan-500/5 p-2 z-50">
+                      {/* User Info Header */}
+                      <div className="p-4 border-b border-white/10">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
+                            <User className="h-5 w-5 text-cyan-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">
+                              {userInfo.user_name}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate">
+                              {userInfo.email}
+                            </p>
+                          </div>
+                          {userInfo.is_premium && (
+                            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/20 border border-amber-500/30">
+                              <Crown className="h-3 w-3 text-amber-400" />
+                              <span className="text-xs font-medium text-amber-400">Premium</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Menu Items */}
+                      <div className="py-2">
+                        {profileMenuItems.map((item) => (
+                          <button
+                            key={item.name}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleProfileItemClick(item.href);
+                            }}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-300 transition-all duration-200 hover:bg-white/10 hover:text-white group/menu-item w-full text-left"
+                          >
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 group-hover/menu-item:bg-cyan-500/20 transition-colors duration-200">
+                              <item.icon className="h-4 w-4 text-gray-400 group-hover/menu-item:text-cyan-400 transition-colors duration-200" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">{item.name}</p>
+                              <p className="text-xs text-gray-500 group-hover/menu-item:text-gray-400">
+                                {item.description}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Logout Section */}
+                      <div className="p-2 border-t border-white/10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProfileDropdownOpen(false);
+                            handleLogout();
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-400 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400"
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
+                            <LogOut className="h-4 w-4" />
+                          </div>
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
                 
-                {/* Logout Button */}
+                {/* Logout Button - Fallback for smaller screens */}
                 <button
                   onClick={handleLogout}
-                  disabled={loading}
-                  className="flex items-center gap-2 rounded-xl bg-white/5 px-4 py-2.5 text-sm font-semibold text-gray-400 border border-white/10 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 disabled:opacity-50"
+                  className="lg:hidden flex items-center gap-2 rounded-xl bg-white/5 px-4 py-2.5 text-sm font-semibold text-gray-400 border border-white/10 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30"
                 >
                   <LogOut className="h-4 w-4" />
-                  {loading ? '...' : 'Logout'}
+                  <span className="hidden sm:inline">Logout</span>
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-3">
                 <Link
                   href="/login"
-                  className="rounded-xl bg-white/5 px-6 py-2.5 text-sm font-semibold text-gray-300 border border-white/10 transition-all duration-200 hover:bg-white/10 hover:text-white hover:border-white/20"
+                  className="rounded-xl bg-white/5 px-4 py-2.5 text-sm font-semibold text-gray-300 border border-white/10 transition-all duration-200 hover:bg-white/10 hover:text-white hover:border-white/20"
                 >
-                  Sign In
+                  <span className="hidden sm:inline">Sign In</span>
+                  <span className="sm:hidden">Login</span>
                 </Link>
                 <Link
                   href="/signup"
-                  className="rounded-xl bg-gradient-to-r px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all duration-200 hover:bg-white/10 hover:text-white hover:shadow-cyan-500/40 hover:border-white/20 "
+                  className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all duration-200 hover:from-cyan-400 hover:to-blue-500"
                 >
-                  Get Started
+                  <span className="hidden sm:inline">Get Started</span>
+                  <span className="sm:hidden">Sign Up</span>
                 </Link>
               </div>
             )}
-          </div>
 
-          {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="inline-flex items-center justify-center rounded-xl p-2.5 text-gray-400 transition-all duration-200 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 lg:hidden"
-            aria-label="Toggle menu"
-            aria-expanded={open}
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="inline-flex items-center justify-center rounded-xl p-2.5 text-gray-400 transition-all duration-200 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 lg:hidden"
+              aria-label="Toggle menu"
+              aria-expanded={open}
+            >
+              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Navigation */}
         {open && (
-          <div className="lg:hidden">
-            <div className="mt-2 rounded-2xl border border-white/10 bg-black/95 p-4 shadow-2xl backdrop-blur-xl">
-              {/* Navigation Links */}
-              <div className="space-y-2">
-                {nav.map((item) => {
-                  const active = isActive(item.href);
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className={[
-                        'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
-                        active
-                          ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-400 border border-cyan-500/20'
-                          : 'text-gray-400 hover:text-white hover:bg-white/5',
-                      ].join(' ')}
-                      aria-current={active ? 'page' : undefined}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
+          <div className="lg:hidden border-t border-white/10 pt-4 pb-4">
+            <div className="space-y-2">
+              {nav.map((item) => {
+                const active = isActive(item.href);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={[
+                      'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200',
+                      active
+                        ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-400 border border-cyan-500/20'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5',
+                    ].join(' ')}
+                    aria-current={active ? 'page' : undefined}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
 
-              {/* Auth Section */}
-              <div className="mt-4 border-t border-white/10 pt-4">
-                {authLoading ? (
-                  <div className="flex items-center justify-center gap-2 rounded-xl bg-white/5 px-4 py-3 text-sm text-gray-400">
-                    <Loader className="h-4 w-4 animate-spin" />
-                    <span>Checking auth...</span>
+            <div className="mt-4 border-t border-white/10 pt-4">
+              {userInfo ? (
+                <div className="space-y-3">
+                  {/* Mobile Profile Links */}
+                  <div className="space-y-2">
+                    {profileMenuItems.map((item) => (
+                      <button
+                        key={item.name}
+                        onClick={() => {
+                          setOpen(false);
+                          window.location.href = item.href;
+                        }}
+                        className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200 w-full text-left"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.name}
+                      </button>
+                    ))}
                   </div>
-                ) : userInfo ? (
-                  <div className="space-y-3">
-                    {/* User Info */}
-                    <div className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3 border border-white/10">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
-                        <User className="h-5 w-5 text-cyan-400" />
-                      </div>
-                      <div className="flex flex-col flex-1">
-                        <span className="text-sm font-semibold text-white">
-                          {userInfo.user_name || userInfo.user_id?.split('@')[0]}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {userInfo.user_id}
-                        </span>
-                        
-                      </div>
-                      {userInfo.is_premium && (
-                        <Crown className="h-5 w-5 text-amber-400" />
-                      )}
-                    </div>
-                    
-                    {/* Logout Button */}
-                    <button
-                      onClick={handleLogout}
-                      disabled={loading}
-                      className="flex w-full items-center gap-2 rounded-xl bg-white/5 px-4 py-3 text-sm font-semibold text-gray-400 border border-white/10 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 disabled:opacity-50"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      {loading ? 'Logging out...' : 'Sign Out'}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <Link
-                      href="/login"
-                      onClick={() => setOpen(false)}
-                      className="rounded-xl bg-white/5 px-4 py-3 text-center text-sm font-semibold text-gray-300 border border-white/10 transition-all duration-200 hover:bg-white/10 hover:text-white"
-                    >
-                      Sign In
-                    </Link>
-                    <Link
-                      href="/signup"
-                      onClick={() => setOpen(false)}
-                      className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all duration-200 hover:from-cyan-400 hover:to-blue-500"
-                    >
-                      Get Started
-                    </Link>
-                  </div>
-                )}
-              </div>
+                  
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2 rounded-xl bg-white/5 px-4 py-3 text-sm font-semibold text-gray-400 border border-white/10 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Link
+                    href="/login"
+                    onClick={() => setOpen(false)}
+                    className="rounded-xl bg-white/5 px-4 py-3 text-center text-sm font-semibold text-gray-300 border border-white/10 transition-all duration-200 hover:bg-white/10 hover:text-white"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setOpen(false)}
+                    className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all duration-200 hover:from-cyan-400 hover:to-blue-500"
+                  >
+                    Get Started
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}

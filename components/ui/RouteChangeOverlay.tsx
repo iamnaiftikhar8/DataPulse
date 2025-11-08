@@ -14,7 +14,7 @@ export default function RouteChangeOverlay() {
     if (!pathname) return;
 
     setShow(true);
-    const t = setTimeout(() => setShow(false), 750); // adjust duration
+    const t = setTimeout(() => setShow(false), 400); // adjust duration
     return () => clearTimeout(t);
   }, [pathname]);
 

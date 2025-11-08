@@ -20,7 +20,6 @@ export default function ScreenLoader() {
 
       {/* brand + dots */}
       <div className="text-center">
-        <div className="text-2xl font-semibold logo-anim logo-glow">DataPulse</div>
         <div className="mt-2 flex items-center justify-center gap-1 text-sm text-gray-300">
           <span className="animate-bounce [animation-delay:-0.2s]">•</span>
           <span className="animate-bounce [animation-delay:-0.1s]">•</span>

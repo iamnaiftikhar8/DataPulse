@@ -86,7 +86,7 @@ export default function HomePage() {
                 href="/analyze"
                 className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-5 py-3 text-sm font-semibold text-black shadow ring-1 ring-white/10 transition-colors hover:from-cyan-400 hover:to-violet-400"
               >
-                Get Started
+                Try It Now
               </Link>
 
               
@@ -98,7 +98,7 @@ export default function HomePage() {
       {/* --- Benefits --- */}
       <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold text-white">Why teams choose DataPulse</h2>
+          <h2 className="text-2xl font-semibold text-white">Why choose DataPulse</h2>
           <p className="mx-auto mt-2 max-w-3xl text-sm text-gray-300">
             Empower your business to make data-driven decisions with an intuitive, modern analytics stack.
           </p>
@@ -125,7 +125,7 @@ export default function HomePage() {
         <div className="text-center">
           <h2 className="text-2xl font-semibold text-white">Proven impact</h2>
           <p className="mx-auto mt-2 max-w-3xl text-sm text-gray-300">
-            Companies like yours achieve measurable outcomes with DataPulse.
+            Companies achieve measurable outcomes with DataPulse.
           </p>
         </div>
 
@@ -146,15 +146,69 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* --- Footer --- */}
-      <footer className="border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-4 py-8 text-xs text-gray-400 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-end gap-4 sm:flex-row">
-            <p>© {new Date().getFullYear()} DataPulse - All rights reserved.</p>
-           
-          </div>
+   {/* --- Footer --- */}
+<footer className="border-t border-white/10 bg-black/20 backdrop-blur-sm">
+  <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="flex flex-col items-center justify-between gap-6 lg:flex-row">
+      {/* Left side - Brand and copyright */}
+      <div className="flex flex-col items-center gap-2 text-center lg:items-start lg:text-left">
+        <div className="flex items-center gap-2">
+         
+          <span className="text-sm font-semibold text-white">DataPulse</span>
         </div>
-      </footer>
+        <p className="text-xs text-gray-400">
+          © {new Date().getFullYear()} DataPulse. All rights reserved.
+        </p>
+      </div>
+
+      {/* Center - Navigation links */}
+      <div className="flex flex-wrap items-center justify-center gap-6 text-xs">
+        <a 
+          href="/analyze" 
+          className="text-gray-400 hover:text-cyan-400 transition-colors duration-200"
+        >
+          Analyze
+        </a>
+     
+        <a 
+          href="/pricing" 
+          className="text-gray-400 hover:text-cyan-400 transition-colors duration-200"
+        >
+          Pricing
+        </a>
+        <a 
+          href="/contact" 
+          className="text-gray-400 hover:text-cyan-400 transition-colors duration-200"
+        >
+          Contact Us
+        </a>
+        <a 
+          href="/about" 
+          className="text-gray-400 hover:text-cyan-400 transition-colors duration-200"
+        >
+          About
+        </a>
+      </div>
+
+      {/* Right side - Legal links */}
+      <div className="flex items-center gap-4 text-xs">
+        <a 
+          href="/privacy" 
+          className="text-gray-400 hover:text-cyan-400 transition-colors duration-200"
+        >
+          Privacy
+        </a>
+        <a 
+          href="/terms" 
+          className="text-gray-400 hover:text-cyan-400 transition-colors duration-200"
+        >
+          Terms
+        </a>
+      
+      </div>
+    </div>
+  </div>
+</footer>
     </main>
   );
 }

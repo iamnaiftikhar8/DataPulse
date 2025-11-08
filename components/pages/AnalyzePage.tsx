@@ -1,8 +1,7 @@
-// components/pages/AnalyzePage.tsx - COMPLETE VERSION
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { UploadCloud, FileSpreadsheet, RotateCcw, User, LogOut, Crown, AlertTriangle } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, RotateCcw, User, LogOut, Crown, AlertTriangle, TextAlignJustify } from 'lucide-react';
 import jsPDF from 'jspdf';
 import AnalysisResultModal from '@/components/pages/AnalysisResultModal';
 import type { AnalysisResult, DetailedSummary } from '@/src/types';
@@ -35,6 +34,7 @@ export default function AnalyzePage() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
   const [showUsageModal, setShowUsageModal] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   
   const [goal] = useState('improve profitability');
   const [audience] = useState<'executive' | 'analyst' | 'product' | 'sales'>('executive');
@@ -44,47 +44,62 @@ export default function AnalyzePage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inFlight = useRef(false);
 
-  // Enhanced authentication check
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
+  //  INSTANT AUTHENTICATION - NO DELAYS
+ useEffect(() => {
+  const initializeAuth = async () => {
+    console.log('Checking auth...');
+    setAuthChecked(true);
 
-  // Check usage stats when user info changes
+    // Handle OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionParam = urlParams.get('session');
+    
+    if (sessionParam) {
+      document.cookie = `dp_session_id=${sessionParam}; path=/; max-age=2592000; SameSite=Lax`;
+      window.history.replaceState({}, '', '/analyze');
+    }
+    
+    // Check auth status
+    await verifyUserSession();
+  };
+
+  initializeAuth();
+}, []);
+
+  const verifyUserSession = async () => {
+  try {
+    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+    
+    const response = await fetch(`${API_BASE}/api/auth/me`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const userData = await response.json();
+      setUserInfo(userData);
+      console.log('✅ User authenticated');
+    } else {
+      setUserInfo(null);
+      // DON'T redirect automatically - let user stay on page
+      console.log('User not authenticated, but staying on page');
+    }
+  } catch (error) {
+    console.error('Auth check failed:', error);
+    setUserInfo(null);
+  }
+};
+
+  //  INSTANT USAGE STATS CHECK
   useEffect(() => {
     if (userInfo?.authenticated) {
       fetchUsageStats();
     }
   }, [userInfo]);
 
-  
-  const checkAuthStatus = async () => {
-    try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
-      const response = await fetch(`${API_BASE}/api/auth/me`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUserInfo(userData);
-        console.log('✅ User authenticated:', userData);
-      } else {
-        console.log('❌ User not authenticated');
-        setUserInfo(null);
-        // Redirect to login if not authenticated
-        window.location.href = '/login';
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setUserInfo(null);
-    }
-  };
-
   const fetchUsageStats = async () => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
-      console.log('🔍 Fetching usage stats...');
+      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
       
       const response = await fetch(`${API_BASE}/api/usage/stats`, {
         method: 'GET',
@@ -93,11 +108,8 @@ export default function AnalyzePage() {
       
       if (response.ok) {
         const stats = await response.json();
-        console.log('✅ Usage stats received:', stats);
         setUsageStats(stats);
       } else {
-        console.warn('❌ Failed to fetch usage stats:', response.status);
-        // Set default stats as fallback
         setUsageStats({
           can_generate: true,
           today_used: 0,
@@ -108,8 +120,6 @@ export default function AnalyzePage() {
         });
       }
     } catch (error) {
-      console.error('💥 Fetch usage stats failed:', error);
-      // Set default stats on error
       setUsageStats({
         can_generate: true,
         today_used: 0,
@@ -121,19 +131,29 @@ export default function AnalyzePage() {
     }
   };
 
-  const handleLogout = async () => {
+  //  INSTANT LOGOUT - NO DELAYS
+   const handleLogout = async () => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
-      await fetch(`${API_BASE}/api/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
+      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
+      
+      //  IMMEDIATE UI UPDATE
       setUserInfo(null);
       setUsageStats(null);
-      resetAll();
-      window.location.href = '/login';
+      
+      //  IMMEDIATE REDIRECT - NO TIMEOUT
+      window.location.href = '/';
+      
+      //  BACKGROUND LOGOUT (NON-BLOCKING)
+      fetch(`${API_BASE}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      }).catch(error => {
+        console.error('Background logout failed:', error);
+      });
+      
     } catch (error) {
-      console.error('Logout failed:', error);
+      //  STILL REDIRECT ON ERROR
+      window.location.href = '/';
     }
   };
 
@@ -152,22 +172,32 @@ export default function AnalyzePage() {
     if (inputRef.current) inputRef.current.value = '';
   }
 
-  function onBrowseClick() {
-    // Check authentication first
-    if (!userInfo?.authenticated) {
-      window.location.href = '/login';
-      return;
-    }
-
-    // Check usage limits
+  // INSTANT USAGE CHECK - NO DELAYS
+  const checkUsageBeforeAction = (): boolean => {
+    //  IMMEDIATE CHECK - NO API CALLS
     if (usageStats && !usageStats.can_generate) {
       setShowUsageModal(true);
-      return;
+      return false;
     }
+    return true;
+  };
 
-    inputRef.current?.click();
+  //  INSTANT ACTION VALIDATION
+const validateAction = (): boolean => {
+  // Let the backend handle authentication
+  // Frontend just checks if operation is in progress
+  return !inFlight.current;
+};
+
+ function onBrowseClick() {
+  if (inFlight.current) {
+    alert('Please wait for current operation to complete');
+    return;
   }
-
+  
+  // Just proceed - let backend handle auth
+  inputRef.current?.click();
+}
   // Stable idempotency key from file bytes
   async function fileSha256Hex(f: File) {
     const buf = await f.arrayBuffer();
@@ -176,22 +206,9 @@ export default function AnalyzePage() {
   }
 
   async function sendToBackend(selected: File) {
-    if (inFlight.current) return;
+    if (!validateAction()) return;
+    
     inFlight.current = true;
-
-    // Check authentication
-    if (!userInfo?.authenticated) {
-      alert('Please log in first to generate a report.');
-      inFlight.current = false;
-      return;
-    }
-
-    // Check usage limits
-    if (usageStats && !usageStats.can_generate) {
-      setShowUsageModal(true);
-      inFlight.current = false;
-      return;
-    }
 
     setStatus('analyzing');
     setProgress(10);
@@ -203,7 +220,7 @@ export default function AnalyzePage() {
       formData.append('file', selected);
 
       const idem = await fileSha256Hex(selected);
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "https://test-six-fawn-47.vercel.app";
+      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
       
       const r1 = await fetch(`${API_BASE}/api/analyze`, {
         method: 'POST',
@@ -215,34 +232,22 @@ export default function AnalyzePage() {
       });
 
       // Enhanced error handling
-      if (r1.status === 401) {
-        clearInterval(tick);
-        inFlight.current = false;
-        setStatus('idle');
-        setProgress(0);
-        setUserInfo(null);
-        alert('Session expired. Please log in again.');
-        window.location.href = '/login';
-        return;
-      }
+    if (r1.status === 401) {
+      alert('Please login again to analyze files');
+      window.location.href = '/login';
+      return;
+    }
 
-      if (r1.status === 402) {
-        let pay = null;
-        try { pay = await r1.json(); } catch {}
-        clearInterval(tick);
-        inFlight.current = false;
-        setStatus('idle');
-        setProgress(0);
-        
-        // Show usage modal with proper message
-        setShowUsageModal(true);
-        return;
-      }
 
-      if (!r1.ok) {
-        const t = await r1.text().catch(() => '');
-        throw new Error(t || `Analyze failed with ${r1.status}`);
-      }
+     
+    if (r1.status === 402) {
+      setShowUsageModal(true);
+      return;
+    }
+    
+    if (!r1.ok) {
+      throw new Error(`Analysis failed with ${r1.status}`);
+    }
 
       const quick = (await r1.json()) as AnalysisResult & { upload_id?: string; content_hash?: string };
 
@@ -307,20 +312,8 @@ export default function AnalyzePage() {
   function onFilesSelected(filesList: FileList | null) {
     const f = filesList?.[0];
     if (!f) return;
-    if (inFlight.current) return;
-
-    // Check authentication
-    if (!userInfo?.authenticated) {
-      alert('Please log in first to generate a report.');
-      window.location.href = '/login';
-      return;
-    }
-
-    // Check usage limits
-    if (usageStats && !usageStats.can_generate) {
-      setShowUsageModal(true);
-      return;
-    }
+    
+  if (inFlight.current) return;
 
     const ok =
       /\.xlsx?$/i.test(f.name) ||
@@ -334,25 +327,15 @@ export default function AnalyzePage() {
     }
     setFile(f);
     setStatus('uploading');
-    setTimeout(() => sendToBackend(f), 300);
+    // REMOVED 300ms DELAY - INSTANT UPLOAD
+    sendToBackend(f);
   }
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
     
-    // Check authentication
-    if (!userInfo?.authenticated) {
-      alert('Please log in first to generate a report.');
-      window.location.href = '/login';
-      return;
-    }
-
-    // Check usage limits
-    if (usageStats && !usageStats.can_generate) {
-      setShowUsageModal(true);
-      return;
-    }
+    if (!validateAction()) return;
     
     if (e.dataTransfer.files?.length) onFilesSelected(e.dataTransfer.files);
   }
@@ -366,148 +349,239 @@ export default function AnalyzePage() {
     setDragOver(false);
   }
 
-  // Text-only PDF export
-  function exportPdfTextOnly() {
-    if (!result) return;
-
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    let y = 14;
-
-    const addTitle = (t: string) => { 
-      doc.setFont('Times new Roman', 'bold'); 
-      doc.setFontSize(16); 
-      doc.text(t, 12, y); 
-      y += 8; 
-    };
-    
-    const addH2 = (t: string) => { 
-      doc.setFont('Times new Roman', 'bold'); 
-      doc.setFontSize(12); 
-      doc.text(t, 12, y); 
-      y += 6; 
-    };
-    
-    const addH3 = (t: string) => { 
-      doc.setFont('Times new Roman', 'bold'); 
-      doc.setFontSize(11); 
-      doc.text(t, 12, y); 
-      y += 5; 
-    };
-    
-    const addText = (t: string) => {
-      if (!t) return;
-      doc.setFont('Times new Roman', 'normal'); 
-      doc.setFontSize(11);
-      const lines = doc.splitTextToSize(t, pageW - 24);
-      for (const line of lines) {
-        if (y > 282) { doc.addPage(); y = 14; }
-        doc.text(line, 12, y); 
-        y += 6;
-      }
-      y += 1;
-    };
-    
-    const addList = (items: string[]) => { 
-      if (!items?.length) return;
-      items.forEach(it => addText(`• ${it}`)); 
-    };
-
-    doc.text('', 0, 0); // ensure font init
-
-    // Title
-    addTitle('DataPulse Analysis Report');
-
-    // Profiling
-    const p = result.profiling ?? {};
-    addH2('Data Profile');
-    addText(`Rows: ${p.rows ?? '-'}    Columns: ${p.columns ?? '-'}`);
-    addText(`Missing Values: ${p.missing_total ?? 0}`);
-    if (p.numeric_columns?.length) addText(`Numeric Columns: ${p.numeric_columns.slice(0, 12).join(', ')}`);
-
-    // KPIs
-    const k = result.kpis ?? {};
-    addH2('Key Performance Indicators');
-    addText(`Total Rows: ${k.total_rows ?? p.rows ?? '-'}`);
-    addText(`Total Columns: ${k.total_columns ?? p.columns ?? '-'}`);
-    if (typeof k.missing_pct === 'number') addText(`Missing %: ${k.missing_pct}%`);
-    if (typeof k.duplicate_rows === 'number') addText(`Duplicates: ${k.duplicate_rows}`);
-    if (typeof k.outliers_total === 'number') addText(`Outliers: ${k.outliers_total}`);
-    if (k.rows_per_day) addText(`Rows per Day: ${k.rows_per_day}`);
-
-    // AI Summary
-    const ai = result.detailed_summary ?? {} as any;
-    const aiParagraph = ai?.executive_overview ?? result.insights?.summary ?? '';
-
-    if (aiParagraph || Object.keys(ai).length > 0) {
-      addH2('AI Executive Summary');
-      
-      // Executive Overview
-      if (aiParagraph) {
-        addH3('Executive Overview');
-        addText(aiParagraph);
-      }
-
-      // Data Quality Assessment
-      if (ai?.data_quality_assessment) {
-        addH3('Data Quality Assessment');
-        addText(ai.data_quality_assessment);
-      }
-
-      // Key Trends
-      if (ai?.key_trends?.length) {
-        addH3('Key Trends & Patterns');
-        addList(ai.key_trends);
-      }
-
-      // Business Implications
-      if (ai?.business_implications?.length) {
-        addH3('Business Implications');
-        addList(ai.business_implications);
-      }
-
-      // Strategic Recommendations
-      if (ai?.recommendations) {
-        if (ai.recommendations.short_term?.length) {
-          addH3('Short-term Recommendations (0-3 months)');
-          addList(ai.recommendations.short_term);
-        }
-        
-        if (ai.recommendations.long_term?.length) {
-          addH3('Long-term Strategies (3-12 months)');
-          addList(ai.recommendations.long_term);
-        }
-      }
-
-      // Quick Wins
-      if (ai?.action_items_quick_wins?.length) {
-        addH3('Immediate Quick Wins');
-        addList(ai.action_items_quick_wins);
-      }
-
-      // Risk Alerts
-      if (ai?.risk_alerts?.length) {
-        addH3('Risk Alerts & Considerations');
-        addList(ai.risk_alerts);
-      }
-
-      // Predictive Insights
-      if (ai?.predictive_insights?.length) {
-        addH3('Predictive Insights');
-        addList(ai.predictive_insights);
-      }
-
-      // Industry Comparison
-      if (ai?.industry_comparison) {
-        addH3('Industry Benchmarking');
-        addText(ai.industry_comparison);
-      }
-    }
-
-    doc.save('DataPulse-Complete-Report.pdf');
+  // Single PDF export function that does BOTH simultaneously
+const exportPdfTextOnly = async () => {
+  if (!result) {
+    alert('No analysis result available');
+    return;
   }
 
+  try {
+    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const uploadId = result.upload_id;
+    
+    console.log('🔄 Starting DUAL PDF export...', { 
+      uploadId,
+      hasResult: !!result
+    });
+
+    // Start BOTH processes simultaneously
+    const backendPromise = uploadId ? exportToBackend() : Promise.resolve(null);
+    const frontendPromise = exportToFrontend();
+
+    // Wait for both to complete
+    const [backendResult] = await Promise.allSettled([backendPromise, frontendPromise]);
+
+    // Check backend result
+    if (backendResult.status === 'fulfilled' && backendResult.value) {
+      alert('✅ Complete analysis PDF exported successfully! Check your profile page for the professional version.');
+    } else {
+      alert('📄 Basic PDF downloaded! For professional reports with charts, check your profile page.');
+    }
+
+  } catch (error) {
+    console.error('💥 PDF export error:', error);
+    alert('PDF exported with basic formatting. Check console for details.');
+  }
+};
+
+// Backend PDF export (professional version)
+const exportToBackend = async (): Promise<boolean> => {
+  try {
+    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const uploadId = result!.upload_id;
+
+    if (!uploadId) {
+      console.log('⚠️ No upload ID for backend export');
+      return false;
+    }
+
+    console.log('🔄 Sending to backend for professional PDF...');
+    
+    const response = await fetch(`${API_BASE}/api/export-pdf`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        upload_id: uploadId,
+        analysis_data: result
+      }),
+    });
+
+    console.log('📨 Backend response status:', response.status);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Backend PDF successful:', data);
+      return true;
+    } else {
+      console.log('❌ Backend PDF failed:', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error('💥 Backend export error:', error);
+    return false;
+  }
+};
+
+// Frontend PDF export (instant download)
+const exportToFrontend = (): Promise<void> => {
+  return new Promise((resolve) => {
+    try {
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      let y = 14;
+
+      const addTitle = (t: string) => { 
+        doc.setFont('Times new Roman', 'bold'); 
+        doc.setFontSize(16); 
+        doc.text(t, pageW / 2, y, { align: 'center' });
+        y += 8; 
+      };
+      
+      const addH2 = (t: string) => { 
+        doc.setFont('Times new Roman', 'bold'); 
+        doc.setFontSize(14); 
+        doc.text(t, 12, y); 
+        y += 6; 
+      };
+      
+      const addH3 = (t: string) => { 
+        doc.setFont('Times new Roman', 'bold'); 
+        doc.setFontSize(12); 
+        doc.text(t, 12, y); 
+        y += 5; 
+      };
+      
+      const addText = (t: string) => {
+        if (!t) return;
+        doc.setFont('Times new Roman', 'normal'); 
+        doc.setFontSize(11);
+        const lines = doc.splitTextToSize(t, pageW - 24);
+        for (const line of lines) {
+          if (y > 282) { doc.addPage(); y = 14; }
+          doc.text(line, 12, y); 
+          y += 6;
+        }
+        y += 1;
+      };
+      
+      const addList = (items: string[]) => { 
+        if (!items?.length) return;
+        items.forEach(it => addText(`• ${it}`)); 
+      };
+
+      doc.text('', 0, 0);
+
+      // Title
+      addTitle('DataPulse Analysis Report');
+
+      // Profiling
+      const p = result!.profiling ?? {};
+      addH2('Data Profile');
+      addText(`Rows: ${p.rows ?? '-'}    Columns: ${p.columns ?? '-'}`);
+      addText(`Missing Values: ${p.missing_total ?? 0}`);
+      if (p.numeric_columns?.length) addText(`Numeric Columns: ${p.numeric_columns.slice(0, 12).join(', ')}`);
+
+      // KPIs
+      const k = result!.kpis ?? {};
+      addH2('Key Performance Indicators');
+      addText(`Total Rows: ${k.total_rows ?? p.rows ?? '-'}`);
+      addText(`Total Columns: ${k.total_columns ?? p.columns ?? '-'}`);
+      if (typeof k.missing_pct === 'number') addText(`Missing %: ${k.missing_pct}%`);
+      if (typeof k.duplicate_rows === 'number') addText(`Duplicates: ${k.duplicate_rows}`);
+      if (typeof k.outliers_total === 'number') addText(`Outliers: ${k.outliers_total}`);
+      if (k.rows_per_day) addText(`Rows per Day: ${k.rows_per_day}`);
+
+      // AI Summary
+      const ai = result!.detailed_summary ?? {} as any;
+      const aiParagraph = ai?.executive_overview ?? result!.insights?.summary ?? '';
+
+      if (aiParagraph || Object.keys(ai).length > 0) {
+        addH2('AI Executive Summary');
+        
+        if (aiParagraph) {
+          addH3('Executive Overview');
+          addText(aiParagraph);
+        }
+
+        if (ai?.data_quality_assessment) {
+          addH3('Data Quality Assessment');
+          addText(ai.data_quality_assessment);
+        }
+
+        if (ai?.key_trends?.length) {
+          addH3('Key Trends & Patterns');
+          addList(ai.key_trends);
+        }
+
+        if (ai?.business_implications?.length) {
+          addH3('Business Implications');
+          addList(ai.business_implications);
+        }
+
+        if (ai?.recommendations) {
+          if (ai.recommendations.short_term?.length) {
+            addH3('Short-term Recommendations (0-3 months)');
+            addList(ai.recommendations.short_term);
+          }
+          
+          if (ai.recommendations.long_term?.length) {
+            addH3('Long-term Strategies (3-12 months)');
+            addList(ai.recommendations.long_term);
+          }
+        }
+
+        if (ai?.action_items_quick_wins?.length) {
+          addH3('Immediate Quick Wins');
+          addList(ai.action_items_quick_wins);
+        }
+
+        if (ai?.risk_alerts?.length) {
+          addH3('Risk Alerts & Considerations');
+          addList(ai.risk_alerts);
+        }
+
+        if (ai?.predictive_insights?.length) {
+          addH3('Predictive Insights');
+          addList(ai.predictive_insights);
+        }
+
+        if (ai?.industry_comparison) {
+          addH3('Industry Benchmarking');
+          addText(ai.industry_comparison);
+        }
+      }
+
+      // Save the PDF
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
+      doc.save(`DataPulse-Report-${timestamp}.pdf`);
+      
+      console.log('✅ Frontend PDF generated successfully');
+      resolve();
+      
+    } catch (error) {
+      console.error('💥 Frontend PDF export error:', error);
+      resolve(); // Still resolve so backend can continue
+    }
+  });
+};
+
   const canReset = status !== 'idle' || file !== null || progress > 0;
+
+  // Show loading state only briefly
+  if (!authChecked) {
+    return (
+      <main className="min-h-screen bg-black text-gray-200 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mx-auto mb-3"></div>
+          <p className="text-gray-400 text-sm">Loading...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-black text-gray-200">
@@ -524,7 +598,6 @@ export default function AnalyzePage() {
             {userInfo && (
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  
                   <div className="text-xs text-gray-400">
                     {usageStats ? (
                       <span>
@@ -535,17 +608,17 @@ export default function AnalyzePage() {
                           </span>
                         ) : (
                           <span>
-  Reports: {usageStats.today_used}/{usageStats.daily_limit}
-  {!usageStats.can_generate && usageStats.next_available && (
-    <span className="text-orange-400">
-      • Next: Tomorrow at {new Date(usageStats.next_available).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-    </span>
-  )}
-                      </span>
+                            Reports: {usageStats.today_used}/{usageStats.daily_limit}
+                            {!usageStats.can_generate && usageStats.next_available && (
+                              <span className="text-orange-400">
+                                • Next: Tomorrow at {new Date(usageStats.next_available).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              </span>
+                            )}
+                          </span>
                         )}
                       </span>
                     ) : (
-                      'Loading...'
+                      ''
                     )}
                   </div>
                 </div>
@@ -568,7 +641,7 @@ export default function AnalyzePage() {
           </div>
         </header>
 
-        {/* Usage Limit Warning */}
+        {/* 🚀 INSTANT USAGE LIMIT WARNING */}
         {usageStats && !usageStats.can_generate && (
           <div className="mb-6 rounded-lg border border-orange-500/30 bg-orange-500/10 p-4">
             <div className="flex items-center gap-3">
@@ -639,7 +712,7 @@ export default function AnalyzePage() {
           )}
         </section>
 
-        {/* Enhanced Professional Progress Section */}
+      {/* Enhanced Professional Progress Section */}
 <section className="mt-6 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.02] to-white/[0.01] p-6 backdrop-blur-sm">
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-3">
@@ -687,53 +760,41 @@ export default function AnalyzePage() {
     </div>
   </div>
 
-  {/* Enhanced Progress Bar */}
-  <div className="mt-4">
-    <div className="flex justify-between text-xs text-gray-400 mb-2">
-      <span>0%</span>
-      <span>50%</span>
-      <span>100%</span>
-    </div>
-    
-    <div className="relative">
-      {/* Background Track with subtle gradient */}
-      <div className="h-3 w-full rounded-full bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden">
-        {/* Animated shimmer effect for active states */}
-        {status !== 'idle' && status !== 'done' && (
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-        )}
-      </div>
-      
-      {/* Progress Fill */}
-      <div 
-        className={`absolute top-0 left-0 h-3 rounded-full transition-all duration-500 ease-out ${
-          status === 'done' 
-            ? 'bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-lg shadow-emerald-500/25' 
-            : 'bg-gradient-to-r from-cyan-400 via-violet-500 to-purple-500 shadow-lg shadow-cyan-500/25'
-        }`}
-        style={{ width: `${progress}%` }}
-      >
-        {/* Progress glow effect */}
-        <div className={`absolute inset-0 rounded-full ${
-          status === 'done' 
-            ? 'bg-emerald-400 animate-pulse-glow' 
-            : 'bg-cyan-400 animate-pulse-glow'
-        }`} />
-      </div>
-      
-      {/* Progress indicator dot */}
-      {progress > 0 && progress < 100 && (
-        <div 
-          className={`absolute top-1/2 w-4 h-4 rounded-full border-2 border-white shadow-lg -translate-y-1/2 ${
-            status === 'done' ? 'bg-emerald-400' : 'bg-cyan-400'
-          }`}
-          style={{ left: `calc(${progress}% - 8px)` }}
-        >
-          <div className="absolute inset-0 rounded-full bg-white animate-ping opacity-20" />
-        </div>
+ {/* Enhanced Progress Bar */}
+<div className="mt-4">
+  <div className="flex justify-between text-xs text-gray-400 mb-2">
+    <span>0%</span>
+    <span>50%</span>
+    <span>100%</span>
+  </div>
+  
+  <div className="relative h-3">
+    {/* Background Track */}
+    <div className="absolute inset-0 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden">
+      {status !== 'idle' && status !== 'done' && (
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
       )}
     </div>
+    
+    {/* Progress Fill - KEEP TRANSITION */}
+    <div 
+      className={`absolute top-0 left-0 h-3 rounded-full transition-all duration-1000 ease-out ${
+        status === 'done' 
+          ? 'bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-lg shadow-emerald-500/25' 
+          : 'bg-gradient-to-r from-cyan-400 via-violet-500 to-purple-500 shadow-lg shadow-cyan-500/25'
+      }`}
+      style={{ width: `${progress}%` }}
+    >
+      <div className={`absolute inset-0 rounded-full ${
+        status === 'done' 
+          ? 'bg-emerald-400 animate-pulse-glow' 
+          : 'bg-cyan-400 animate-pulse-glow'
+      }`} />
+    </div>
+    
+    
   </div>
+</div>
 
   {/* Status Details */}
   <div className="mt-4 flex items-center justify-between text-xs">
@@ -784,7 +845,7 @@ export default function AnalyzePage() {
         onExportPdf={exportPdfTextOnly}
       />
 
-      {/* Usage Limit Modal */}
+      {/* 🚀 INSTANT PAYMENT MODAL - SHOWS IMMEDIATELY */}
       {showUsageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="w-full max-w-md rounded-2xl border border-orange-500/30 bg-gray-900 p-6">
