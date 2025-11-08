@@ -82,18 +82,13 @@ export default function AnalyzePage() {
         const userData = await response.json();
         setUserInfo(userData);
         console.log('✅ User authenticated');
-        await fetchUsageStats();
-
       } else {
         setUserInfo(null);
-        setUsageStats(null);
         console.log('❌ User not authenticated, but staying on page');
       }
     } catch (error) {
       console.error('💥 Auth check failed:', error);
       setUserInfo(null);
-          setUsageStats(null);
-
     }
   };
 
