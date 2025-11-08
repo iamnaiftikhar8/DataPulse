@@ -44,7 +44,7 @@ export default function SignupPage() {
         body: JSON.stringify({ full_name: fullName, email, password }),
       });
 
-      console.log("📨 Signup response status:", res.status);
+      console.log("Signup response status:", res.status);
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -53,10 +53,10 @@ export default function SignupPage() {
         return;
       }
 
-      console.log("✅ Signup successful, redirecting to login");
+      console.log("Signup successful, redirecting to login");
       window.location.href = "/";
     } catch (err) {
-      console.error("💥 Signup error:", err);
+      console.error(" Signup error:", err);
       setError("Network error while signing up.");
       setLoading(false);
     }
@@ -64,7 +64,8 @@ export default function SignupPage() {
 
   // Google OAuth handler
   const handleGoogleSignup = async () => {
-    console.log("🔗 Redirecting to Google OAuth:", `${BACKEND_URL}/api/auth/google`);
+    console.log(" Redirecting to Google OAuth:", `${BACKEND_URL}/api/auth/google`);
+    document.cookie = "dp_session_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure; samesite=none";
     window.location.href = `${BACKEND_URL}/api/auth/google`;
   };
 

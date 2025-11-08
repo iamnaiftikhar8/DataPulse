@@ -58,7 +58,7 @@ export default function AnalyzePage() {
       const sessionParam = urlParams.get('session');
       
       if (sessionParam) {
-        document.cookie = `dp_session_id=${sessionParam}; path=/; max-age=2592000; SameSite=Lax`;
+        document.cookie = `dp_session_id=${sessionParam}; path=/; max-age=2592000; SameSite=none`;
         window.history.replaceState({}, '', '/analyze');
       }
       
@@ -82,13 +82,18 @@ export default function AnalyzePage() {
         const userData = await response.json();
         setUserInfo(userData);
         console.log('✅ User authenticated');
+        await fetchUsageStats();
+
       } else {
         setUserInfo(null);
+        setUsageStats(null);
         console.log('❌ User not authenticated, but staying on page');
       }
     } catch (error) {
       console.error('💥 Auth check failed:', error);
       setUserInfo(null);
+          setUsageStats(null);
+
     }
   };
 
@@ -371,9 +376,9 @@ export default function AnalyzePage() {
 
       // Check backend result
       if (backendResult.status === 'fulfilled' && backendResult.value) {
-        alert('✅ Complete analysis PDF exported successfully! Check your profile page for the professional version.');
+        alert('✅ Complete analysis PDF exported successfully!');
       } else {
-        alert('📄 Basic PDF downloaded! For professional reports with charts, check your profile page.');
+        alert('📄 Basic PDF downloaded! Check Analyze History');
       }
 
     } catch (error) {
