@@ -70,7 +70,7 @@ export default function AnalyzePage() {
   try {
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
     
-    const response = await fetch(`https://test-six-fawn-47.vercel.app/api/auth/me`, {
+    const response = await fetch(`${API_BASE}/api/auth/me`, {
       method: 'GET',
       credentials: 'include',
     });
@@ -237,6 +237,8 @@ const validateAction = (): boolean => {
       window.location.href = '/login';
       return;
     }
+
+
 
     if (r1.status === 402) {
       setShowUsageModal(true);
