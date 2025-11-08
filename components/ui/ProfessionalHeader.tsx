@@ -5,6 +5,9 @@ import { usePathname } from 'next/navigation';
 import React, { useState, useEffect, useRef } from 'react';
 import { Menu, X, LogOut, User, Crown, BarChart3, Zap, Shield, Star, FileText, Settings, ChevronDown, MailIcon } from 'lucide-react';
 
+// HARDCODED BACKEND URL
+const BACKEND_URL = 'https://test-six-fawn-47.vercel.app';
+
 export default function ProfessionalHeader() {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
@@ -53,9 +56,9 @@ export default function ProfessionalHeader() {
   // ⚡ INSTANT AUTH CHECK - No loading states
   const checkAuthStatusFast = async () => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+      console.log("🔄 Quick auth check:", `${BACKEND_URL}/api/auth/quick-check`);
       
-      const quickResponse = await fetch(`${API_BASE}/api/auth/quick-check`, {
+      const quickResponse = await fetch(`${BACKEND_URL}/api/auth/quick-check`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -69,13 +72,15 @@ export default function ProfessionalHeader() {
           session_id: quickData.session_id,
           user_name: quickData.user_id?.split('@')[0]
         });
+        console.log('✅ Quick auth successful');
         // Background update without waiting
         fetchFullUserInfo(quickData.user_id);
       } else {
         setUserInfo(null);
+        console.log('❌ Quick auth failed - user not authenticated');
       }
     } catch (error) {
-      console.error('Fast auth check failed:', error);
+      console.error('💥 Fast auth check failed:', error);
       // Silent fallback - don't show errors to user
     }
   };
@@ -83,8 +88,9 @@ export default function ProfessionalHeader() {
   // Get full user info in background (silent)
   const fetchFullUserInfo = async (userId: string) => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-      const response = await fetch(`${API_BASE}/api/auth/me`, {
+      console.log("🔄 Fetching full user info:", `${BACKEND_URL}/api/auth/me`);
+      
+      const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -92,9 +98,11 @@ export default function ProfessionalHeader() {
       if (response.ok) {
         const fullUserData = await response.json();
         setUserInfo(fullUserData);
+        console.log('✅ Full user info loaded');
       }
     } catch (error) {
       // Silent fail - user already has basic info
+      console.error('💥 Full user info fetch failed:', error);
     }
   };
 
@@ -113,7 +121,7 @@ export default function ProfessionalHeader() {
   // ⚡ INSTANT LOGOUT - No loading, immediate redirect
   const handleLogout = async () => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+      console.log("🚪 Logging out via:", `${BACKEND_URL}/api/auth/logout`);
       
       // Immediate UI update and redirect
       setUserInfo(null);
@@ -126,15 +134,15 @@ export default function ProfessionalHeader() {
       window.location.href = '/';
       
       // Background logout (non-blocking)
-      fetch(`${API_BASE}/api/auth/logout`, {
+      fetch(`${BACKEND_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       }).catch(error => {
-        console.error('Background logout failed:', error);
+        console.error('💥 Background logout failed:', error);
       });
       
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('💥 Logout error:', error);
       // Still redirect on error
       window.location.href = '/';
     }
@@ -242,7 +250,6 @@ export default function ProfessionalHeader() {
                       <span className="text-sm font-semibold text-white">
                         {userInfo.user_name}
                       </span>
-                     
                     </div>
                     <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${
                       profileDropdownOpen ? 'rotate-180' : ''
