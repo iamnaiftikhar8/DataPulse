@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, Activity } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://test-six-fawn-47.vercel.app' ;
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -64,7 +64,7 @@ export default function LoginPage() {
     try {
       console.log("Attempting login with:", { email });
 
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
+      const res = await fetch(`/api/auth/login`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -117,7 +117,7 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
-    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
     window.location.href = `${API_BASE}/api/auth/google`;
   };
 

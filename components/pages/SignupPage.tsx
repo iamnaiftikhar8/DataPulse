@@ -5,7 +5,7 @@ import { Grid3X3, Mail, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link"; // Add this import
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://test-six-fawn-47.vercel.app' ;
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
@@ -34,7 +34,7 @@ export default function SignupPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/auth/signup`, {
+      const res = await fetch(`https://test-six-fawn-47.vercel.app/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // IMPORTANT: sets dp_session_id cookie after signup
