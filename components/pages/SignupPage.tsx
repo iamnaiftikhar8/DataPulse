@@ -3,18 +3,19 @@
 import React, { useState } from "react";
 import { Grid3X3, Mail, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link"; // Add this import
+import Link from "next/link";
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
+// HARDCODED BACKEND URL
+const BACKEND_URL = 'https://test-six-fawn-47.vercel.app';
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
-  const [email, setEmail]       = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm]   = useState("");
-  const [agree, setAgree]       = useState(false);
-  const [error, setError]       = useState<string | null>(null);
-  const [loading, setLoading]   = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [agree, setAgree] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -34,12 +35,16 @@ export default function SignupPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/auth/signup`, {
+      console.log("🔄 Attempting signup to:", `${BACKEND_URL}/api/auth/signup`);
+      
+      const res = await fetch(`${BACKEND_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // IMPORTANT: sets dp_session_id cookie after signup
+        credentials: "include",
         body: JSON.stringify({ full_name: fullName, email, password }),
       });
+
+      console.log("📨 Signup response status:", res.status);
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -48,10 +53,10 @@ export default function SignupPage() {
         return;
       }
 
-      // success → go to homepage 
+      console.log("✅ Signup successful, redirecting to login");
       window.location.href = "/";
     } catch (err) {
-      console.error(err);
+      console.error("💥 Signup error:", err);
       setError("Network error while signing up.");
       setLoading(false);
     }
@@ -59,7 +64,8 @@ export default function SignupPage() {
 
   // Google OAuth handler
   const handleGoogleSignup = async () => {
-    window.location.href = `${API_BASE}/api/auth/google`;
+    console.log("🔗 Redirecting to Google OAuth:", `${BACKEND_URL}/api/auth/google`);
+    window.location.href = `${BACKEND_URL}/api/auth/google`;
   };
 
   return (
@@ -69,7 +75,7 @@ export default function SignupPage() {
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/60 p-6 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.6)] ring-1 ring-white/10 backdrop-blur">
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="inline-flex h-9 w-9 items-center justify-center  font-bold text-black">D</span>
+              <span className="inline-flex h-9 w-9 items-center justify-center font-bold text-black">D</span>
             </div>
             <Link href="/login" className="text-sm text-gray-300 hover:text-white">
               Already have an account? <span className="text-cyan-400">Log in</span>

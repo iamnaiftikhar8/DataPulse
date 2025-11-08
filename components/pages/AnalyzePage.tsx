@@ -6,6 +6,9 @@ import jsPDF from 'jspdf';
 import AnalysisResultModal from '@/components/pages/AnalysisResultModal';
 import type { AnalysisResult, DetailedSummary } from '@/src/types';
 
+// HARDCODED BACKEND URL FOR ALL ENDPOINTS
+const BACKEND_URL = 'https://test-six-fawn-47.vercel.app';
+
 type Status = 'idle' | 'uploading' | 'analyzing' | 'done';
 
 interface UserInfo {
@@ -44,53 +47,52 @@ export default function AnalyzePage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inFlight = useRef(false);
 
-  //  INSTANT AUTHENTICATION - NO DELAYS
- useEffect(() => {
-  const initializeAuth = async () => {
-    console.log('Checking auth...');
-    setAuthChecked(true);
+  // INSTANT AUTHENTICATION - NO DELAYS
+  useEffect(() => {
+    const initializeAuth = async () => {
+      console.log('🔍 Checking auth...');
+      setAuthChecked(true);
 
-    // Handle OAuth callback
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionParam = urlParams.get('session');
-    
-    if (sessionParam) {
-      document.cookie = `dp_session_id=${sessionParam}; path=/; max-age=2592000; SameSite=Lax`;
-      window.history.replaceState({}, '', '/analyze');
-    }
-    
-    // Check auth status
-    await verifyUserSession();
-  };
+      // Handle OAuth callback
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionParam = urlParams.get('session');
+      
+      if (sessionParam) {
+        document.cookie = `dp_session_id=${sessionParam}; path=/; max-age=2592000; SameSite=Lax`;
+        window.history.replaceState({}, '', '/analyze');
+      }
+      
+      // Check auth status
+      await verifyUserSession();
+    };
 
-  initializeAuth();
-}, []);
+    initializeAuth();
+  }, []);
 
   const verifyUserSession = async () => {
-  try {
-    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-    
-    const response = await fetch(`${API_BASE}/api/auth/me`, {
-      method: 'GET',
-      credentials: 'include',
-    });
+    try {
+      console.log("🔄 Verifying user session:", `${BACKEND_URL}/api/auth/me`);
+      
+      const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
+        method: 'GET',
+        credentials: 'include',
+      });
 
-    if (response.ok) {
-      const userData = await response.json();
-      setUserInfo(userData);
-      console.log('✅ User authenticated');
-    } else {
+      if (response.ok) {
+        const userData = await response.json();
+        setUserInfo(userData);
+        console.log('✅ User authenticated');
+      } else {
+        setUserInfo(null);
+        console.log('❌ User not authenticated, but staying on page');
+      }
+    } catch (error) {
+      console.error('💥 Auth check failed:', error);
       setUserInfo(null);
-      // DON'T redirect automatically - let user stay on page
-      console.log('User not authenticated, but staying on page');
     }
-  } catch (error) {
-    console.error('Auth check failed:', error);
-    setUserInfo(null);
-  }
-};
+  };
 
-  //  INSTANT USAGE STATS CHECK
+  // INSTANT USAGE STATS CHECK
   useEffect(() => {
     if (userInfo?.authenticated) {
       fetchUsageStats();
@@ -99,9 +101,9 @@ export default function AnalyzePage() {
 
   const fetchUsageStats = async () => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
+      console.log("🔄 Fetching usage stats:", `${BACKEND_URL}/api/usage/stats`);
       
-      const response = await fetch(`${API_BASE}/api/usage/stats`, {
+      const response = await fetch(`${BACKEND_URL}/api/usage/stats`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -109,6 +111,7 @@ export default function AnalyzePage() {
       if (response.ok) {
         const stats = await response.json();
         setUsageStats(stats);
+        console.log('✅ Usage stats loaded');
       } else {
         setUsageStats({
           can_generate: true,
@@ -131,20 +134,18 @@ export default function AnalyzePage() {
     }
   };
 
-  //  INSTANT LOGOUT - NO DELAYS
-   const handleLogout = async () => {
+  // INSTANT LOGOUT - NO DELAYS
+  const handleLogout = async () => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
-      
-      //  IMMEDIATE UI UPDATE
+      // IMMEDIATE UI UPDATE
       setUserInfo(null);
       setUsageStats(null);
       
-      //  IMMEDIATE REDIRECT - NO TIMEOUT
+      // IMMEDIATE REDIRECT - NO TIMEOUT
       window.location.href = '/';
       
-      //  BACKGROUND LOGOUT (NON-BLOCKING)
-      fetch(`${API_BASE}/api/auth/logout`, {
+      // BACKGROUND LOGOUT (NON-BLOCKING)
+      fetch(`${BACKEND_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       }).catch(error => {
@@ -152,7 +153,7 @@ export default function AnalyzePage() {
       });
       
     } catch (error) {
-      //  STILL REDIRECT ON ERROR
+      // STILL REDIRECT ON ERROR
       window.location.href = '/';
     }
   };
@@ -174,7 +175,6 @@ export default function AnalyzePage() {
 
   // INSTANT USAGE CHECK - NO DELAYS
   const checkUsageBeforeAction = (): boolean => {
-    //  IMMEDIATE CHECK - NO API CALLS
     if (usageStats && !usageStats.can_generate) {
       setShowUsageModal(true);
       return false;
@@ -182,22 +182,20 @@ export default function AnalyzePage() {
     return true;
   };
 
-  //  INSTANT ACTION VALIDATION
-const validateAction = (): boolean => {
-  // Let the backend handle authentication
-  // Frontend just checks if operation is in progress
-  return !inFlight.current;
-};
+  // INSTANT ACTION VALIDATION
+  const validateAction = (): boolean => {
+    return !inFlight.current;
+  };
 
- function onBrowseClick() {
-  if (inFlight.current) {
-    alert('Please wait for current operation to complete');
-    return;
+  function onBrowseClick() {
+    if (inFlight.current) {
+      alert('Please wait for current operation to complete');
+      return;
+    }
+    
+    inputRef.current?.click();
   }
-  
-  // Just proceed - let backend handle auth
-  inputRef.current?.click();
-}
+
   // Stable idempotency key from file bytes
   async function fileSha256Hex(f: File) {
     const buf = await f.arrayBuffer();
@@ -220,9 +218,10 @@ const validateAction = (): boolean => {
       formData.append('file', selected);
 
       const idem = await fileSha256Hex(selected);
-      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
       
-      const r1 = await fetch(`${API_BASE}/api/analyze`, {
+      console.log("🔄 Sending file for analysis:", `${BACKEND_URL}/api/analyze`);
+      
+      const r1 = await fetch(`${BACKEND_URL}/api/analyze`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -232,22 +231,20 @@ const validateAction = (): boolean => {
       });
 
       // Enhanced error handling
-    if (r1.status === 401) {
-      alert('Please login again to analyze files');
-      window.location.href = '/login';
-      return;
-    }
+      if (r1.status === 401) {
+        alert('Please login again to analyze files');
+        window.location.href = '/login';
+        return;
+      }
 
-
-
-    if (r1.status === 402) {
-      setShowUsageModal(true);
-      return;
-    }
-    
-    if (!r1.ok) {
-      throw new Error(`Analysis failed with ${r1.status}`);
-    }
+      if (r1.status === 402) {
+        setShowUsageModal(true);
+        return;
+      }
+      
+      if (!r1.ok) {
+        throw new Error(`Analysis failed with ${r1.status}`);
+      }
 
       const quick = (await r1.json()) as AnalysisResult & { upload_id?: string; content_hash?: string };
 
@@ -256,7 +253,9 @@ const validateAction = (): boolean => {
       let detailedNormalized: DetailedSummary | null = null;
 
       if (uploadHandle) {
-        const r2 = await fetch(`${API_BASE}/api/ai-summary`, {
+        console.log("🔄 Getting AI summary:", `${BACKEND_URL}/api/ai-summary`);
+        
+        const r2 = await fetch(`${BACKEND_URL}/api/ai-summary`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -313,7 +312,7 @@ const validateAction = (): boolean => {
     const f = filesList?.[0];
     if (!f) return;
     
-  if (inFlight.current) return;
+    if (inFlight.current) return;
 
     const ok =
       /\.xlsx?$/i.test(f.name) ||
@@ -327,7 +326,6 @@ const validateAction = (): boolean => {
     }
     setFile(f);
     setStatus('uploading');
-    // REMOVED 300ms DELAY - INSTANT UPLOAD
     sendToBackend(f);
   }
 
@@ -350,224 +348,222 @@ const validateAction = (): boolean => {
   }
 
   // Single PDF export function that does BOTH simultaneously
-const exportPdfTextOnly = async () => {
-  if (!result) {
-    alert('No analysis result available');
-    return;
-  }
-
-  try {
-    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-    const uploadId = result.upload_id;
-    
-    console.log('🔄 Starting DUAL PDF export...', { 
-      uploadId,
-      hasResult: !!result
-    });
-
-    // Start BOTH processes simultaneously
-    const backendPromise = uploadId ? exportToBackend() : Promise.resolve(null);
-    const frontendPromise = exportToFrontend();
-
-    // Wait for both to complete
-    const [backendResult] = await Promise.allSettled([backendPromise, frontendPromise]);
-
-    // Check backend result
-    if (backendResult.status === 'fulfilled' && backendResult.value) {
-      alert('✅ Complete analysis PDF exported successfully! Check your profile page for the professional version.');
-    } else {
-      alert('📄 Basic PDF downloaded! For professional reports with charts, check your profile page.');
+  const exportPdfTextOnly = async () => {
+    if (!result) {
+      alert('No analysis result available');
+      return;
     }
 
-  } catch (error) {
-    console.error('💥 PDF export error:', error);
-    alert('PDF exported with basic formatting. Check console for details.');
-  }
-};
-
-// Backend PDF export (professional version)
-const exportToBackend = async (): Promise<boolean> => {
-  try {
-    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-    const uploadId = result!.upload_id;
-
-    if (!uploadId) {
-      console.log('⚠️ No upload ID for backend export');
-      return false;
-    }
-
-    console.log('🔄 Sending to backend for professional PDF...');
-    
-    const response = await fetch(`${API_BASE}/api/export-pdf`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        upload_id: uploadId,
-        analysis_data: result
-      }),
-    });
-
-    console.log('📨 Backend response status:', response.status);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ Backend PDF successful:', data);
-      return true;
-    } else {
-      console.log('❌ Backend PDF failed:', response.status);
-      return false;
-    }
-  } catch (error) {
-    console.error('💥 Backend export error:', error);
-    return false;
-  }
-};
-
-// Frontend PDF export (instant download)
-const exportToFrontend = (): Promise<void> => {
-  return new Promise((resolve) => {
     try {
-      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-      const pageW = doc.internal.pageSize.getWidth();
-      let y = 14;
-
-      const addTitle = (t: string) => { 
-        doc.setFont('Times new Roman', 'bold'); 
-        doc.setFontSize(16); 
-        doc.text(t, pageW / 2, y, { align: 'center' });
-        y += 8; 
-      };
+      const uploadId = result.upload_id;
       
-      const addH2 = (t: string) => { 
-        doc.setFont('Times new Roman', 'bold'); 
-        doc.setFontSize(14); 
-        doc.text(t, 12, y); 
-        y += 6; 
-      };
-      
-      const addH3 = (t: string) => { 
-        doc.setFont('Times new Roman', 'bold'); 
-        doc.setFontSize(12); 
-        doc.text(t, 12, y); 
-        y += 5; 
-      };
-      
-      const addText = (t: string) => {
-        if (!t) return;
-        doc.setFont('Times new Roman', 'normal'); 
-        doc.setFontSize(11);
-        const lines = doc.splitTextToSize(t, pageW - 24);
-        for (const line of lines) {
-          if (y > 282) { doc.addPage(); y = 14; }
-          doc.text(line, 12, y); 
-          y += 6;
-        }
-        y += 1;
-      };
-      
-      const addList = (items: string[]) => { 
-        if (!items?.length) return;
-        items.forEach(it => addText(`• ${it}`)); 
-      };
+      console.log('🔄 Starting DUAL PDF export...', { 
+        uploadId,
+        hasResult: !!result
+      });
 
-      doc.text('', 0, 0);
+      // Start BOTH processes simultaneously
+      const backendPromise = uploadId ? exportToBackend() : Promise.resolve(null);
+      const frontendPromise = exportToFrontend();
 
-      // Title
-      addTitle('DataPulse Analysis Report');
+      // Wait for both to complete
+      const [backendResult] = await Promise.allSettled([backendPromise, frontendPromise]);
 
-      // Profiling
-      const p = result!.profiling ?? {};
-      addH2('Data Profile');
-      addText(`Rows: ${p.rows ?? '-'}    Columns: ${p.columns ?? '-'}`);
-      addText(`Missing Values: ${p.missing_total ?? 0}`);
-      if (p.numeric_columns?.length) addText(`Numeric Columns: ${p.numeric_columns.slice(0, 12).join(', ')}`);
-
-      // KPIs
-      const k = result!.kpis ?? {};
-      addH2('Key Performance Indicators');
-      addText(`Total Rows: ${k.total_rows ?? p.rows ?? '-'}`);
-      addText(`Total Columns: ${k.total_columns ?? p.columns ?? '-'}`);
-      if (typeof k.missing_pct === 'number') addText(`Missing %: ${k.missing_pct}%`);
-      if (typeof k.duplicate_rows === 'number') addText(`Duplicates: ${k.duplicate_rows}`);
-      if (typeof k.outliers_total === 'number') addText(`Outliers: ${k.outliers_total}`);
-      if (k.rows_per_day) addText(`Rows per Day: ${k.rows_per_day}`);
-
-      // AI Summary
-      const ai = result!.detailed_summary ?? {} as any;
-      const aiParagraph = ai?.executive_overview ?? result!.insights?.summary ?? '';
-
-      if (aiParagraph || Object.keys(ai).length > 0) {
-        addH2('AI Executive Summary');
-        
-        if (aiParagraph) {
-          addH3('Executive Overview');
-          addText(aiParagraph);
-        }
-
-        if (ai?.data_quality_assessment) {
-          addH3('Data Quality Assessment');
-          addText(ai.data_quality_assessment);
-        }
-
-        if (ai?.key_trends?.length) {
-          addH3('Key Trends & Patterns');
-          addList(ai.key_trends);
-        }
-
-        if (ai?.business_implications?.length) {
-          addH3('Business Implications');
-          addList(ai.business_implications);
-        }
-
-        if (ai?.recommendations) {
-          if (ai.recommendations.short_term?.length) {
-            addH3('Short-term Recommendations (0-3 months)');
-            addList(ai.recommendations.short_term);
-          }
-          
-          if (ai.recommendations.long_term?.length) {
-            addH3('Long-term Strategies (3-12 months)');
-            addList(ai.recommendations.long_term);
-          }
-        }
-
-        if (ai?.action_items_quick_wins?.length) {
-          addH3('Immediate Quick Wins');
-          addList(ai.action_items_quick_wins);
-        }
-
-        if (ai?.risk_alerts?.length) {
-          addH3('Risk Alerts & Considerations');
-          addList(ai.risk_alerts);
-        }
-
-        if (ai?.predictive_insights?.length) {
-          addH3('Predictive Insights');
-          addList(ai.predictive_insights);
-        }
-
-        if (ai?.industry_comparison) {
-          addH3('Industry Benchmarking');
-          addText(ai.industry_comparison);
-        }
+      // Check backend result
+      if (backendResult.status === 'fulfilled' && backendResult.value) {
+        alert('✅ Complete analysis PDF exported successfully! Check your profile page for the professional version.');
+      } else {
+        alert('📄 Basic PDF downloaded! For professional reports with charts, check your profile page.');
       }
 
-      // Save the PDF
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
-      doc.save(`DataPulse-Report-${timestamp}.pdf`);
-      
-      console.log('✅ Frontend PDF generated successfully');
-      resolve();
-      
     } catch (error) {
-      console.error('💥 Frontend PDF export error:', error);
-      resolve(); // Still resolve so backend can continue
+      console.error('💥 PDF export error:', error);
+      alert('PDF exported with basic formatting. Check console for details.');
     }
-  });
-};
+  };
+
+  // Backend PDF export (professional version)
+  const exportToBackend = async (): Promise<boolean> => {
+    try {
+      const uploadId = result!.upload_id;
+
+      if (!uploadId) {
+        console.log('⚠️ No upload ID for backend export');
+        return false;
+      }
+
+      console.log('🔄 Sending to backend for professional PDF:', `${BACKEND_URL}/api/export-pdf`);
+      
+      const response = await fetch(`${BACKEND_URL}/api/export-pdf`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          upload_id: uploadId,
+          analysis_data: result
+        }),
+      });
+
+      console.log('📨 Backend PDF response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Backend PDF successful:', data);
+        return true;
+      } else {
+        console.log('❌ Backend PDF failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('💥 Backend export error:', error);
+      return false;
+    }
+  };
+
+  // Frontend PDF export (instant download) - UNCHANGED
+  const exportToFrontend = (): Promise<void> => {
+    return new Promise((resolve) => {
+      try {
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const pageW = doc.internal.pageSize.getWidth();
+        let y = 14;
+
+        const addTitle = (t: string) => { 
+          doc.setFont('Times new Roman', 'bold'); 
+          doc.setFontSize(16); 
+          doc.text(t, pageW / 2, y, { align: 'center' });
+          y += 8; 
+        };
+        
+        const addH2 = (t: string) => { 
+          doc.setFont('Times new Roman', 'bold'); 
+          doc.setFontSize(14); 
+          doc.text(t, 12, y); 
+          y += 6; 
+        };
+        
+        const addH3 = (t: string) => { 
+          doc.setFont('Times new Roman', 'bold'); 
+          doc.setFontSize(12); 
+          doc.text(t, 12, y); 
+          y += 5; 
+        };
+        
+        const addText = (t: string) => {
+          if (!t) return;
+          doc.setFont('Times new Roman', 'normal'); 
+          doc.setFontSize(11);
+          const lines = doc.splitTextToSize(t, pageW - 24);
+          for (const line of lines) {
+            if (y > 282) { doc.addPage(); y = 14; }
+            doc.text(line, 12, y); 
+            y += 6;
+          }
+          y += 1;
+        };
+        
+        const addList = (items: string[]) => { 
+          if (!items?.length) return;
+          items.forEach(it => addText(`• ${it}`)); 
+        };
+
+        doc.text('', 0, 0);
+
+        // Title
+        addTitle('DataPulse Analysis Report');
+
+        // Profiling
+        const p = result!.profiling ?? {};
+        addH2('Data Profile');
+        addText(`Rows: ${p.rows ?? '-'}    Columns: ${p.columns ?? '-'}`);
+        addText(`Missing Values: ${p.missing_total ?? 0}`);
+        if (p.numeric_columns?.length) addText(`Numeric Columns: ${p.numeric_columns.slice(0, 12).join(', ')}`);
+
+        // KPIs
+        const k = result!.kpis ?? {};
+        addH2('Key Performance Indicators');
+        addText(`Total Rows: ${k.total_rows ?? p.rows ?? '-'}`);
+        addText(`Total Columns: ${k.total_columns ?? p.columns ?? '-'}`);
+        if (typeof k.missing_pct === 'number') addText(`Missing %: ${k.missing_pct}%`);
+        if (typeof k.duplicate_rows === 'number') addText(`Duplicates: ${k.duplicate_rows}`);
+        if (typeof k.outliers_total === 'number') addText(`Outliers: ${k.outliers_total}`);
+        if (k.rows_per_day) addText(`Rows per Day: ${k.rows_per_day}`);
+
+        // AI Summary
+        const ai = result!.detailed_summary ?? {} as any;
+        const aiParagraph = ai?.executive_overview ?? result!.insights?.summary ?? '';
+
+        if (aiParagraph || Object.keys(ai).length > 0) {
+          addH2('AI Executive Summary');
+          
+          if (aiParagraph) {
+            addH3('Executive Overview');
+            addText(aiParagraph);
+          }
+
+          if (ai?.data_quality_assessment) {
+            addH3('Data Quality Assessment');
+            addText(ai.data_quality_assessment);
+          }
+
+          if (ai?.key_trends?.length) {
+            addH3('Key Trends & Patterns');
+            addList(ai.key_trends);
+          }
+
+          if (ai?.business_implications?.length) {
+            addH3('Business Implications');
+            addList(ai.business_implications);
+          }
+
+          if (ai?.recommendations) {
+            if (ai.recommendations.short_term?.length) {
+              addH3('Short-term Recommendations (0-3 months)');
+              addList(ai.recommendations.short_term);
+            }
+            
+            if (ai.recommendations.long_term?.length) {
+              addH3('Long-term Strategies (3-12 months)');
+              addList(ai.recommendations.long_term);
+            }
+          }
+
+          if (ai?.action_items_quick_wins?.length) {
+            addH3('Immediate Quick Wins');
+            addList(ai.action_items_quick_wins);
+          }
+
+          if (ai?.risk_alerts?.length) {
+            addH3('Risk Alerts & Considerations');
+            addList(ai.risk_alerts);
+          }
+
+          if (ai?.predictive_insights?.length) {
+            addH3('Predictive Insights');
+            addList(ai.predictive_insights);
+          }
+
+          if (ai?.industry_comparison) {
+            addH3('Industry Benchmarking');
+            addText(ai.industry_comparison);
+          }
+        }
+
+        // Save the PDF
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:]/g, '-');
+        doc.save(`DataPulse-Report-${timestamp}.pdf`);
+        
+        console.log('✅ Frontend PDF generated successfully');
+        resolve();
+        
+      } catch (error) {
+        console.error('💥 Frontend PDF export error:', error);
+        resolve();
+      }
+    });
+  };
 
   const canReset = status !== 'idle' || file !== null || progress > 0;
 
@@ -622,7 +618,6 @@ const exportToFrontend = (): Promise<void> => {
                     )}
                   </div>
                 </div>
-               
               </div>
             )}
 
@@ -641,7 +636,7 @@ const exportToFrontend = (): Promise<void> => {
           </div>
         </header>
 
-        {/* 🚀 INSTANT USAGE LIMIT WARNING */}
+        {/* INSTANT USAGE LIMIT WARNING */}
         {usageStats && !usageStats.can_generate && (
           <div className="mb-6 rounded-lg border border-orange-500/30 bg-orange-500/10 p-4">
             <div className="flex items-center gap-3">
@@ -712,129 +707,124 @@ const exportToFrontend = (): Promise<void> => {
           )}
         </section>
 
-      {/* Enhanced Professional Progress Section */}
-<section className="mt-6 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.02] to-white/[0.01] p-6 backdrop-blur-sm">
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-3">
-      <div className={`rounded-lg p-2 ${
-        status === 'done' ? 'bg-emerald-500/20' : 
-        status === 'analyzing' ? 'bg-cyan-500/20' : 
-        status === 'uploading' ? 'bg-blue-500/20' : 
-        'bg-gray-500/20'
-      }`}>
-        {status === 'done' ? (
-          <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        ) : status === 'analyzing' ? (
-          <svg className="h-4 w-4 animate-spin text-cyan-400" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
-        ) : status === 'uploading' ? (
-          <svg className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-        ) : (
-          <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-          </svg>
-        )}
-      </div>
-      <div>
-        <h2 className="text-sm font-semibold text-white">AI Analysis Progress</h2>
-        <p className="mt-0.5 text-xs text-gray-400">
-          {status === 'done' ? 'Analysis complete and ready' :
-           status === 'analyzing' ? 'Processing data with AI algorithms' :
-           status === 'uploading' ? 'Securely uploading your file' :
-           'Awaiting file upload to begin'}
-        </p>
-      </div>
-    </div>
-    
-    <div className="text-right">
-      <span className="text-lg font-bold text-white">{progress}%</span>
-      <div className="text-xs text-gray-400 mt-0.5">
-        {status === 'done' ? 'Complete' : 'In Progress'}
-      </div>
-    </div>
-  </div>
+        {/* Enhanced Professional Progress Section */}
+        <section className="mt-6 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.02] to-white/[0.01] p-6 backdrop-blur-sm">
+          {/* Progress section content remains the same */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`rounded-lg p-2 ${
+                status === 'done' ? 'bg-emerald-500/20' : 
+                status === 'analyzing' ? 'bg-cyan-500/20' : 
+                status === 'uploading' ? 'bg-blue-500/20' : 
+                'bg-gray-500/20'
+              }`}>
+                {status === 'done' ? (
+                  <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : status === 'analyzing' ? (
+                  <svg className="h-4 w-4 animate-spin text-cyan-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : status === 'uploading' ? (
+                  <svg className="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-white">AI Analysis Progress</h2>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  {status === 'done' ? 'Analysis complete and ready' :
+                  status === 'analyzing' ? 'Processing data with AI algorithms' :
+                  status === 'uploading' ? 'Securely uploading your file' :
+                  'Awaiting file upload to begin'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <span className="text-lg font-bold text-white">{progress}%</span>
+              <div className="text-xs text-gray-400 mt-0.5">
+                {status === 'done' ? 'Complete' : 'In Progress'}
+              </div>
+            </div>
+          </div>
 
- {/* Enhanced Progress Bar */}
-<div className="mt-4">
-  <div className="flex justify-between text-xs text-gray-400 mb-2">
-    <span>0%</span>
-    <span>50%</span>
-    <span>100%</span>
-  </div>
-  
-  <div className="relative h-3">
-    {/* Background Track */}
-    <div className="absolute inset-0 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden">
-      {status !== 'idle' && status !== 'done' && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-      )}
-    </div>
-    
-    {/* Progress Fill - KEEP TRANSITION */}
-    <div 
-      className={`absolute top-0 left-0 h-3 rounded-full transition-all duration-1000 ease-out ${
-        status === 'done' 
-          ? 'bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-lg shadow-emerald-500/25' 
-          : 'bg-gradient-to-r from-cyan-400 via-violet-500 to-purple-500 shadow-lg shadow-cyan-500/25'
-      }`}
-      style={{ width: `${progress}%` }}
-    >
-      <div className={`absolute inset-0 rounded-full ${
-        status === 'done' 
-          ? 'bg-emerald-400 animate-pulse-glow' 
-          : 'bg-cyan-400 animate-pulse-glow'
-      }`} />
-    </div>
-    
-    
-  </div>
-</div>
+          {/* Rest of progress section remains the same */}
+          <div className="mt-4">
+            <div className="flex justify-between text-xs text-gray-400 mb-2">
+              <span>0%</span>
+              <span>50%</span>
+              <span>100%</span>
+            </div>
+            
+            <div className="relative h-3">
+              <div className="absolute inset-0 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden">
+                {status !== 'idle' && status !== 'done' && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+                )}
+              </div>
+              
+              <div 
+                className={`absolute top-0 left-0 h-3 rounded-full transition-all duration-1000 ease-out ${
+                  status === 'done' 
+                    ? 'bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-lg shadow-emerald-500/25' 
+                    : 'bg-gradient-to-r from-cyan-400 via-violet-500 to-purple-500 shadow-lg shadow-cyan-500/25'
+                }`}
+                style={{ width: `${progress}%` }}
+              >
+                <div className={`absolute inset-0 rounded-full ${
+                  status === 'done' 
+                    ? 'bg-emerald-400 animate-pulse-glow' 
+                    : 'bg-cyan-400 animate-pulse-glow'
+                }`} />
+              </div>
+            </div>
+          </div>
 
-  {/* Status Details */}
-  <div className="mt-4 flex items-center justify-between text-xs">
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1.5">
-        <div className={`w-2 h-2 rounded-full ${
-          status === 'uploading' ? 'bg-blue-400 animate-pulse' : 'bg-gray-600'
-        }`} />
-        <span className={status === 'uploading' ? 'text-blue-300' : 'text-gray-500'}>
-          Upload
-        </span>
-      </div>
-      
-      <div className="flex items-center gap-1.5">
-        <div className={`w-2 h-2 rounded-full ${
-          status === 'analyzing' ? 'bg-cyan-400 animate-pulse' : 'bg-gray-600'
-        }`} />
-        <span className={status === 'analyzing' ? 'text-cyan-300' : 'text-gray-500'}>
-          Analysis
-        </span>
-      </div>
-      
-      <div className="flex items-center gap-1.5">
-        <div className={`w-2 h-2 rounded-full ${
-          status === 'done' ? 'bg-emerald-400' : 'bg-gray-600'
-        }`} />
-        <span className={status === 'done' ? 'text-emerald-300' : 'text-gray-500'}>
-          Complete
-        </span>
-      </div>
-    </div>
-    
-    {/* Time estimate - you can make this dynamic based on file size */}
-    <div className="text-gray-400">
-      {status === 'uploading' && '≈ 10s remaining'}
-      {status === 'analyzing' && '≈ 30s remaining'}
-      {status === 'done' && 'Ready to view'}
-    </div>
-  </div>
-</section>
+          <div className="mt-4 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${
+                  status === 'uploading' ? 'bg-blue-400 animate-pulse' : 'bg-gray-600'
+                }`} />
+                <span className={status === 'uploading' ? 'text-blue-300' : 'text-gray-500'}>
+                  Upload
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${
+                  status === 'analyzing' ? 'bg-cyan-400 animate-pulse' : 'bg-gray-600'
+                }`} />
+                <span className={status === 'analyzing' ? 'text-cyan-300' : 'text-gray-500'}>
+                  Analysis
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${
+                  status === 'done' ? 'bg-emerald-400' : 'bg-gray-600'
+                }`} />
+                <span className={status === 'done' ? 'text-emerald-300' : 'text-gray-500'}>
+                  Complete
+                </span>
+              </div>
+            </div>
+            
+            <div className="text-gray-400">
+              {status === 'uploading' && '≈ 10s remaining'}
+              {status === 'analyzing' && '≈ 30s remaining'}
+              {status === 'done' && 'Ready to view'}
+            </div>
+          </div>
+        </section>
       </div>
 
       {/* Results Modal */}
@@ -845,7 +835,7 @@ const exportToFrontend = (): Promise<void> => {
         onExportPdf={exportPdfTextOnly}
       />
 
-      {/* 🚀 INSTANT PAYMENT MODAL - SHOWS IMMEDIATELY */}
+      {/* INSTANT PAYMENT MODAL */}
       {showUsageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
           <div className="w-full max-w-md rounded-2xl border border-orange-500/30 bg-gray-900 p-6">

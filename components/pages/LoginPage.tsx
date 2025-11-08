@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, Activity } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ;
+// HARDCODED BACKEND URL
+const BACKEND_URL = 'https://test-six-fawn-47.vercel.app';
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -55,74 +56,71 @@ export default function LoginPage() {
   }, [router]);
 
   async function onSubmit(e: React.FormEvent) {
-  e.preventDefault();
-  if (loading) return;
+    e.preventDefault();
+    if (loading) return;
 
-  setLoading(true);
-  setError(null);
+    setLoading(true);
+    setError(null);
 
-  try {
-    // Use hardcoded URL for now to fix the issue
-    const API_URL = 'https://test-six-fawn-47.vercel.app';
-    console.log("Attempting login to:", `${API_URL}/api/auth/login`);
+    try {
+      console.log("🔄 Attempting login to:", `${BACKEND_URL}/api/auth/login`);
 
-    const res = await fetch(`${API_URL}/api/auth/login`, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({ 
-        email: email.trim(), 
-        password,
-        remember 
-      }),
-    });
+      const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ 
+          email: email.trim(), 
+          password,
+          remember 
+        }),
+      });
 
-    console.log("Login response status:", res.status);
+      console.log("📨 Login response status:", res.status);
 
-    if (!res.ok) {
-      let errorData;
-      try {
-        errorData = await res.json();
-        console.log("Error response:", errorData);
-      } catch (parseError) {
-        console.log("Could not parse error response");
+      if (!res.ok) {
+        let errorData;
+        try {
+          errorData = await res.json();
+          console.log("❌ Error response:", errorData);
+        } catch (parseError) {
+          console.log("❌ Could not parse error response");
+        }
+        
+        setError(errorData?.detail || errorData?.error || `Login failed (${res.status})`);
+        setLoading(false);
+        return;
       }
+
+      const userData = await res.json();
+      console.log("✅ Login successful:", userData);
       
-      setError(errorData?.detail || errorData?.error || `Login failed (${res.status})`);
+      localStorage.setItem('recent_login', JSON.stringify({
+        authenticated: true,
+        user_id: userData.user_id,
+        user_name: userData.user_name || userData.user_id?.split('@')[0],
+        session_id: userData.session_id
+      }));
+
+      window.dispatchEvent(new Event('userLoggedIn'));
+
+      setTimeout(() => {
+        router.push('/analyze');
+      }, 100);
+      
+    } catch (err) {
+      console.error("💥 Login error:", err);
+      setError("Network error while logging in. Check if backend is running.");
       setLoading(false);
-      return;
     }
-
-    const userData = await res.json();
-    console.log("Login successful:", userData);
-    
-    localStorage.setItem('recent_login', JSON.stringify({
-      authenticated: true,
-      user_id: userData.user_id,
-      user_name: userData.user_name || userData.user_id?.split('@')[0],
-      session_id: userData.session_id
-    }));
-
-    window.dispatchEvent(new Event('userLoggedIn'));
-
-    setTimeout(() => {
-      router.push('/analyze');
-    }, 100);
-    
-  } catch (err) {
-    console.error("Login error:", err);
-    setError("Network error while logging in. Check if backend is running.");
-    setLoading(false);
   }
-}
 
- const handleGoogleLogin = async () => {
-  // Use hardcoded URL
-  const API_URL = 'https://test-six-fawn-47.vercel.app';
-  window.location.href = `${API_URL}/api/auth/google`;
-};
+  const handleGoogleLogin = async () => {
+    console.log("🔗 Redirecting to Google OAuth:", `${BACKEND_URL}/api/auth/google`);
+    window.location.href = `${BACKEND_URL}/api/auth/google`;
+  };
 
   return (
     <main className="min-h-screen w-full bg-gray-950 text-gray-200 flex items-center justify-center p-4">
@@ -208,7 +206,6 @@ export default function LoginPage() {
                 </div>
                 <span className="text-gray-300">Remember me</span>
               </label>
-            
             </div>
 
             {/* Submit Button */}
