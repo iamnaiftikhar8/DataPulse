@@ -3,6 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { User, FileText, Calendar, Download, Crown, BarChart3, Settings, Shield, CreditCard, Star, Zap, Edit3, Save, X, Mail, Building, Briefcase, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
+// HARDCODED BACKEND URL - ONLY CHANGE MADE
+const BACKEND_URL = 'https://test-six-fawn-47.vercel.app';
+
 interface UserProfile {
   user_id: string;
   email: string;
@@ -77,10 +80,9 @@ export default function ProfilePage() {
 
   const fetchUserData = async () => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      console.log('🔍 Fetching user profile from:', `${API_BASE}/api/user/profile`);
+      console.log('🔍 Fetching user profile from:', `${BACKEND_URL}/api/user/profile`);
       
-      const response = await fetch(`${API_BASE}/api/user/profile`, {
+      const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
         credentials: 'include',
       });
       
@@ -101,10 +103,9 @@ export default function ProfilePage() {
 
   const fetchReports = async () => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      console.log('📥 Fetching PDF reports from:', `${API_BASE}/api/user/pdf-reports`);
+      console.log('📥 Fetching PDF reports from:', `${BACKEND_URL}/api/user/pdf-reports`);
       
-      const response = await fetch(`${API_BASE}/api/user/pdf-reports`, {
+      const response = await fetch(`${BACKEND_URL}/api/user/pdf-reports`, {
         credentials: 'include',
       });
       
@@ -156,8 +157,7 @@ export default function ProfilePage() {
 
   const downloadPdf = async (reportId: string, filename: string) => {
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_BASE}/api/download-pdf/${reportId}`, {
+      const response = await fetch(`${BACKEND_URL}/api/download-pdf/${reportId}`, {
         credentials: 'include',
       });
       
